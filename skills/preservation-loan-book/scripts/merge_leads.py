@@ -34,6 +34,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from plb import adapters as A  # noqa: E402
+from plb.instruments import collect_instruments
 from plb.book_join import join_book, load_crosswalk, phase_tokens  # noqa: E402
 from plb.dates import months_between, parse_as_of, parse_iso, urgency_band  # noqa: E402
 from plb.entities import is_self_owned  # noqa: E402
@@ -60,7 +61,7 @@ def _blank(v) -> bool:
 LEAD_COLUMN_FOR_SOURCE = {"OHCS Funded?": "ohcs_funded", "programs": "programs"}
 
 
-UNION_COLUMNS = ("signals", "verify_flags", "programs", "source_vintages", "compliance_gates", "kpi_flags", "agency_loan_ids", "grant_ids", "agency_programs")
+UNION_COLUMNS = ("signals", "verify_flags", "programs", "source_vintages", "compliance_gates", "kpi_flags", "agency_loan_ids", "grant_ids", "asset_ids", "contract_ids", "agency_programs")
 
 
 def expected_in_book(lead: Dict[str, Any], profile: Dict[str, Any]) -> bool:
@@ -171,9 +172,6 @@ def merge(lead_frames: List[pd.DataFrame], event_frames: List[pd.DataFrame], as_
                 a_, b_ = str(base.get(c) or ""), str(other.get(c) or "")
                 items = [x for x in (a_ + ";" + b_).split(";") if x.strip()]
                 base[c] = ";".join(dict.fromkeys(items))
-            if c == "public_upb" or True:
-                # two loans on one property: sum the UPB of book rows
-                pass
         book_rows = grp[grp["_is_book"].astype(bool)]
         if len(book_rows) > 1:
             # several instruments on one property: book_kind is a ';'-list in BOOK_KINDS order (loan first); scalar loan terms
@@ -199,6 +197,22 @@ def merge(lead_frames: List[pd.DataFrame], event_frames: List[pd.DataFrame], as_
             amts = pd.to_numeric(book_rows["recapture_amount"], errors="coerce")
             if amts.notna().any():
                 base["recapture_amount"] = float(amts.fillna(0).sum())
+        if len(book_rows):
+            instruments = collect_instruments(book_rows.to_dict(orient="records"))
+            base["instruments_json"] = json.dumps(instruments, sort_keys=True)
+            loans = [r for r in instruments if r["book_kind"] == "loan"]
+            if loans:
+                balances = [r.get("public_upb") for r in loans]
+                base["public_upb"] = sum(float(v) for v in balances) if all(v not in (None, "") for v in balances) else ""
+            amounts = [r.get("recapture_amount") for r in instruments if r.get("recapture_amount") not in (None, "")]
+            base["recapture_amount"] = sum(float(v) for v in amounts) if amounts else ""
+            statuses = {r.get("covenant_status") for r in instruments}
+            base["covenant_status"] = next((s for s in ("default", "watch", "current") if s in statuses), "")
+            # Scalar columns are display summaries, never shared terms for unlike instruments.
+            for c in ("our_rate", "payment_type", "recapture_type", "recapture_method", "recapture_start", "recapture_end"):
+                values = {str(r.get(c, "")) for r in instruments if r.get(c) not in (None, "")}
+                if len(values) > 1:
+                    base[c] = "mixed" if c in ("payment_type", "recapture_type", "recapture_method") else ""
         # universe / book_match
         self_owned = str(base.get("book_match")) == "self_owned" or is_self_owned(base.get("owner_name"), profile.get("self_owner_tokens"), base.get("developer_name"))
         if self_owned and str(base.get("owner_type")) != "self_owned":

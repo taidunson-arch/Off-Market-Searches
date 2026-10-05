@@ -31,19 +31,19 @@ def _pipeline():
            "horizon_years": 10, "servicing_extract": os.path.join(FX, "agency_servicing_sample.csv"), "book_coverage": "full", "book_crosswalk": os.path.join(FX, "book_crosswalk_sample.csv"),
            "local_datasets": [os.path.join(FX, "ohcs_sample.csv"), os.path.join(FX, "reac_scores_sample.csv"), os.path.join(FX, "ohcs_forecast_sample.csv")],
            "prior_run": prior, "pii_scope": "organization", "board_packet": True, "workbook_name": "Fixture_Preservation_LoanBook_10yr.xlsx", "out_dir": out,
-           "as_of_date": "2026-10-04", "pipeline_mode": True, "pipeline_root": out}
+           "as_of_date": "2026-10-04", "pipeline_mode": True, "pipeline_root": out, "operations_db": os.path.join(out, "agency.sqlite")}
     cp = os.path.join(out, "run_config.json")
     json.dump(cfg, open(cp, "w"))
     p = subprocess.run([sys.executable, os.path.join(SCRIPTS, "run_agency_pipeline.py"), "--config", cp], capture_output=True, text=True, cwd=SCRIPTS)
     assert p.returncode == 0, p.stderr[-4000:]
-    _RUN["r"] = {"root": out, "dir": os.path.join(out, "2026-10-04"), "stdout": p.stdout}
+    _RUN["r"] = {"root": out, "dir": json.load(open(os.path.join(out, "2026-10-04", "latest.json")))["run_dir"], "stdout": p.stdout}
     return _RUN["r"]
 
 
 def test_every_output_written():
     r = _pipeline()
     d = r["dir"]
-    for f in ("leads.csv", "events.csv", "rejects.csv", "merge_log.csv", "servicing_unmatched.csv", "book_join_gaps.csv", "calendar_summary.json", "leads_scored.csv",
+    for f in ("instruments.csv", "covenants.csv", "risk_dimensions.csv", "financial_history.json", "leads.csv", "events.csv", "rejects.csv", "merge_log.csv", "servicing_unmatched.csv", "book_join_gaps.csv", "calendar_summary.json", "leads_scored.csv",
               "units_at_risk.json", "notice_compliance_queue.csv", "nofa_targets.csv", "agency_calendar.csv", "sponsor_exposure.csv", "optout_qc_responses.csv",
               "Fixture_Preservation_LoanBook_10yr.xlsx", "Fixture_Board_Packet.xlsx", "board_packet.md", "brief.md", "status_flips.csv", "kpi_summary.json", "result.json",
               "manifest.json", "sources_used.json", "handoff/critical-dates-tracker.json", "handoff/documents_to_request.csv", "handoff/sos_worklist.csv", "handoff/board_packet.csv"):
@@ -57,6 +57,28 @@ def test_every_output_written():
     wb = openpyxl.load_workbook(os.path.join(d, "Fixture_Preservation_LoanBook_10yr.xlsx"), read_only=True)
     assert wb.sheetnames[:3] == ["Summary", "Board_Totals", "Intervention_Queue"] and {"Book_Watchlist", "Notice_Compliance", "Agency_Calendar", "Status_Flips", "Rejects_Verify"} <= set(wb.sheetnames)
     assert set(openpyxl.load_workbook(os.path.join(d, "Fixture_Board_Packet.xlsx"), read_only=True).sheetnames) >= {"Board_Totals", "Preservation_Queue", "Redaction_Log"}
+
+
+def test_hfa_operations_snapshot_and_independent_reconciliation():
+    import sqlite3
+    from validate_book import reconcile
+    r = _pipeline()
+    db = sqlite3.connect(os.path.join(r["root"], "agency.sqlite"))
+    try:
+        assert db.execute("SELECT count(*) FROM runs").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM instruments").fetchone()[0] >= 10
+        assert db.execute("SELECT count(*) FROM cases").fetchone()[0] > 0
+        assert db.execute("SELECT count(*) FROM covenants").fetchone()[0] == db.execute("SELECT count(*) FROM instruments").fetchone()[0]
+    finally:
+        db.close()
+    # Independent source tape count, not a count copied from generated output.
+    source = pd.read_csv(os.path.join(FX, "agency_servicing_sample.csv"))
+    controls = {"source": "synthetic servicing fixture (not real HFA acceptance)", "reviewer": "test",
+                "totals": {"instruments": len(source), "public_upb": float(source[source["book_kind"] == "loan"]["upb"].sum())}}
+    report = reconcile(r["dir"], controls)
+    assert report["passed"], report
+    controls["totals"]["public_upb"] += 1
+    assert not reconcile(r["dir"], controls)["passed"]
 
 
 def test_brief_header_verbatim_and_board_totals_agree():
@@ -145,7 +167,7 @@ def test_degraded_universe_only_run_without_servicing_extract():
     json.dump(cfg, open(cp, "w"))
     p = subprocess.run([sys.executable, os.path.join(SCRIPTS, "run_agency_pipeline.py"), "--config", cp], capture_output=True, text=True, cwd=SCRIPTS)
     assert p.returncode == 0, p.stderr[-4000:]
-    d = os.path.join(out, "2026-10-04")
+    d = json.load(open(os.path.join(out, "2026-10-04", "latest.json")))["run_dir"]
     for f in ("brief.md", "manifest.json", "result.json", "leads_scored.csv", "servicing_unmatched.csv", "book_join_gaps.csv"):
         assert os.path.exists(os.path.join(d, f)), f
         assert os.path.getsize(os.path.join(d, f)) > 0, f"{f} is 0 bytes"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Orchestrate the preservation-loan-book pipeline from a run_config.json (public-agency preservation and loan-book review).
 
-Stages (in order; `--from <stage>` restarts at one of them using the artifacts already in the run dir):
+Stages (full isolated runs; partial restarts are rejected to prevent stale output reuse):
   discover  -> scan `servicing_extract`, `inbox` and `local_datasets[]`; detect each file's schema from its header
                (agency_servicing_extract FIRST, then OHCS inventory, HUD FHASL, HUD Sec 8, OHCS forecast, REAC, NOAH candidates,
                ZIP crosswalk); date each file from its filename (YYYYMMDD / YYYY-MM-DD) else mtime (vintage_source recorded)
@@ -19,11 +19,13 @@ when `pipeline_mode` is true, the checkpoint data/status/{market_id}/asset_manag
 No network calls; the clock is read only through --as-of / as_of_date (default date.today()).
 
 Usage:
-  python scripts/run_agency_pipeline.py --config run_config.json [--from score] [--prior-run runs/2026-07-01] [--explain <property_id>] [--as-of YYYY-MM-DD]
+  python scripts/run_agency_pipeline.py --config run_config.json [--prior-run <completed-run-dir>] [--explain <property_id>] [--as-of YYYY-MM-DD]
 Config keys: market_id, pack, agency_profile, universe, mandate_file, geography_mode, counties[], target_city, horizon_years (10),
 regulatory_horizon_years (10), programs, owner_types_include, owner_types_exclude, servicing_extract, book_coverage ("partial"),
 local_datasets[], inbox, zip_crosswalk, prior_run, prior_forecast, noah_watch (false), pii_scope ("organization"), board_packet (true),
-include_proxies (false), handoff_routes[], max_results, workbook_name, out_dir, as_of_date, scoring_dir, pipeline_mode (false).
+include_proxies (false), handoff_routes[], max_results, workbook_name, out_dir, as_of_date, scoring_dir, pipeline_mode (false),
+operations_db (optional), financial_observations (optional CSV), financial_policy (versioned agency thresholds).
+Outputs live under out_dir/as_of/run_id; read out_dir/as_of/latest.json for the last successful run.
 """
 from __future__ import annotations
 
@@ -34,6 +36,7 @@ import os
 import re
 import subprocess
 import sys
+import uuid
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
@@ -42,6 +45,8 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from plb import __version__ as PLB_VERSION  # noqa: E402
+from plb.instruments import parse_instruments, grant_exposure  # noqa: E402
+from plb.risk_dimensions import assess, financial_observations  # noqa: E402
 from plb.dates import months_between, parse_as_of, parse_iso  # noqa: E402
 from plb.interventions import meta as imeta  # noqa: E402
 from plb.pii import RECORDS_CLASSIFICATION, apply_pii_scope  # noqa: E402
@@ -100,6 +105,8 @@ def run_cmd(args: List[str], log: List[str]) -> int:
     err = "\n".join(l for l in p.stderr.splitlines() if "Warning" not in l and "frame.insert" not in l and l.strip() and not l.startswith("  "))
     if err.strip():
         print(err, file=sys.stderr)
+    if p.returncode != 0:
+        raise RuntimeError(f"stage {os.path.basename(args[1])} failed rc={p.returncode}: {p.stderr[-2000:]}")
     return p.returncode
 
 
@@ -152,6 +159,9 @@ def url_verified(entry: Dict[str, str]) -> str:
 
 def discover(cfg: Dict[str, Any], schemas: Dict[str, Any]) -> List[Dict[str, Any]]:
     files: List[str] = []
+    for path in ([cfg["servicing_extract"]] if cfg.get("servicing_extract") else []) + list(cfg.get("local_datasets") or []):
+        if not os.path.isfile(path):
+            raise ValueError(f"configured input is missing: {path}")
     if cfg.get("servicing_extract") and os.path.exists(cfg["servicing_extract"]):
         files.append(cfg["servicing_extract"])
     inbox = cfg.get("inbox")
@@ -170,6 +180,8 @@ def discover(cfg: Dict[str, Any], schemas: Dict[str, Any]) -> List[Dict[str, Any
             sid = "zip_county_crosswalk"
         if sid is None and "Termination Date" in cols:
             sid = "hud_fhasl_terminated"
+        if f == cfg.get("servicing_extract") and sid != "agency_servicing_extract":
+            raise ValueError("configured servicing extract does not match the agency schema")
         v, vs = file_vintage(f)
         out.append({"file": f, "schema": sid, "sha256": sha256(f), "columns": cols[:12], "vintage": v, "vintage_source": vs})
     # servicing extract first so every later adapter can match property ids against the book
@@ -599,7 +611,7 @@ def write_result_json(run_dir: str, cfg: Dict[str, Any], as_of: date, prof: Dict
 
 
 # --------------------------------------------------------------------------- main
-def main(argv=None):
+def execute(argv, run_dir, run_id):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", required=True)
     ap.add_argument("--from", dest="from_stage", default="discover", choices=STAGES)
@@ -610,8 +622,6 @@ def main(argv=None):
     cfg = json.load(open(a.config))
     as_of = parse_as_of(a.as_of or cfg.get("as_of_date"))
     pack = cfg.get("pack") or os.path.normpath(os.path.join(HERE, "..", "references", "sources", "oregon-portland"))
-    run_dir = os.path.join(cfg.get("out_dir", "runs"), as_of.isoformat())
-    os.makedirs(run_dir, exist_ok=True)
     schemas = load_dataset_schemas(pack)
     directory = load_source_directory(pack)
     profile_name = cfg.get("agency_profile", "hfa")
@@ -624,7 +634,7 @@ def main(argv=None):
     counties = cfg.get("counties")
     prior = a.prior_run or cfg.get("prior_run")
     manifest: Dict[str, Any] = {"as_of_date": as_of.isoformat(), "market_id": cfg.get("market_id"), "config": cfg, "pack": pack, "plb_version": PLB_VERSION,
-                                "python": sys.version.split()[0], "stages": {}, "inputs": [],
+                                "python": sys.version.split()[0], "run_id": run_id, "stages": {}, "inputs": [],
                                 "flags": {"agency_profile": profile_name, "universe": cfg.get("universe", "all"), "mandate_file": cfg.get("mandate_file") or os.path.join(pack, "mandate.json"),
                                           "pii_scope": scope, "book_coverage": cfg.get("book_coverage", "partial"), "noah_watch": bool(cfg.get("noah_watch")),
                                           "horizon_years": cfg.get("horizon_years", 10), "regulatory_horizon_years": rhz, "include_proxies": bool(cfg.get("include_proxies")),
@@ -648,7 +658,7 @@ def main(argv=None):
     if start <= STAGES.index("universe"):
         if "ohcs_affordable_housing_inventory" not in by_schema:
             print("[universe] no OHCS / HFA inventory file recognized; the inventory is the universe and is required", file=sys.stderr)
-            manifest["stages"]["universe"] = "no inventory"
+            raise ValueError("no recognized inventory; cannot produce a current run")
         else:
             cmd = [PY, os.path.join(HERE, "build_universe.py"), "--pack", pack, "--mode", mode, "--agency-profile", profile_name, "--ohcs", by_schema["ohcs_affordable_housing_inventory"],
                    "--out-dir", run_dir, "--as-of", as_of.isoformat(), "--horizon-years", hz, "--regulatory-horizon-years", str(rhz), "--book-coverage", cfg.get("book_coverage", "partial")]
@@ -687,6 +697,9 @@ def main(argv=None):
                 json.dump(manifest, open(os.path.join(run_dir, "manifest.json"), "w"), indent=2, default=str)
                 sys.exit(rc)
 
+    for name in ("leads.csv", "events.csv", "calendar_summary.json"):
+        if not os.path.isfile(os.path.join(run_dir, name)):
+            raise ValueError(f"universe did not produce {name}")
     # ---- calendar (console view; header must equal the universe header)
     if start <= STAGES.index("calendar") and os.path.exists(os.path.join(run_dir, "events.csv")):
         qpath = os.path.join(run_dir, "calendar_query.json")
@@ -696,8 +709,10 @@ def main(argv=None):
             q = json.load(open(qpath))
             c = json.load(open(os.path.join(run_dir, "calendar_summary.json")))
             manifest["stages"]["calendar"] = {"header": c.get("header"), "header_matches_query": q.get("header") == c.get("header")}
-        except Exception as exc:  # pragma: no cover
-            manifest["stages"]["calendar"] = f"query failed: {exc}"
+        except Exception as exc:
+            raise RuntimeError(f"calendar verification failed: {exc}") from exc
+        if not manifest["stages"]["calendar"]["header_matches_query"]:
+            raise ValueError("calendar headers disagree; publication blocked")
 
     # ---- score
     if start <= STAGES.index("score") and os.path.exists(os.path.join(run_dir, "leads.csv")):
@@ -793,10 +808,48 @@ def main(argv=None):
         except Exception:
             manifest["stages"]["diff"] = "written"
 
+    # ---- normalized positions and separate risk dimensions
+    scored_frame = _read(os.path.join(run_dir, "leads_scored.csv"))
+    if scored_frame is None:
+        raise ValueError("scoring produced no readable current output")
+    positions = []
+    for row in scored_frame.to_dict(orient="records"):
+        for position in parse_instruments(row.get("instruments_json")):
+            exposure = grant_exposure([position], as_of)
+            positions.append(dict(position, property_id=row["property_id"], recapture_exposure=exposure["exposure"], recapture_flag=exposure["flag"]))
+    from plb.instruments import FIELDS
+    pd.DataFrame(positions, columns=["property_id", "instrument_id", *FIELDS, "recapture_exposure", "recapture_flag"]).to_csv(os.path.join(run_dir, "instruments.csv"), index=False)
+    pd.DataFrame([{k:r.get(k, "") for k in ("property_id", "instrument_id", "covenant_status", "affordability_end", "recapture_end")} for r in positions],
+                 columns=["property_id", "instrument_id", "covenant_status", "affordability_end", "recapture_end"]).to_csv(os.path.join(run_dir, "covenants.csv"), index=False)
+    observation_rows = []
+    if cfg.get("financial_observations"):
+        observation_path = cfg["financial_observations"]
+        observation_rows = pd.read_csv(observation_path, dtype=str, keep_default_na=False).to_dict(orient="records")
+        manifest["financial_input"] = {"file": observation_path, "sha256": sha256(observation_path)}
+    known_properties = set(scored_frame["property_id"].astype(str))
+    unknown_properties = {str(r.get("property_id")) for r in observation_rows} - known_properties
+    if unknown_properties:
+        raise ValueError(f"financial observations have unmatched properties: {sorted(unknown_properties)}")
+    latest_financials, financial_history = financial_observations(observation_rows, as_of)
+    policy = cfg.get("financial_policy") or {}
+    if policy and not str(policy.get("version") or "").strip():
+        raise ValueError("financial_policy requires an agency-approved version label")
+    risk_rows = [assess(r, latest_financials.get(str(r["property_id"])), as_of, policy) for r in scored_frame.to_dict(orient="records")]
+    pd.DataFrame(risk_rows).to_csv(os.path.join(run_dir, "risk_dimensions.csv"), index=False)
+    atomic_json(os.path.join(run_dir, "financial_history.json"), financial_history)
     # ---- result JSON, manifest, checkpoint
     if os.path.exists(os.path.join(run_dir, "leads_scored.csv")):
         rp = write_result_json(run_dir, cfg, as_of, prof, sources_used, manifest, pack)
+        result = json.load(open(rp, encoding="utf-8"))
+        result["instruments"] = positions
+        result["risk_dimensions"] = risk_rows
+        atomic_json(rp, result)
         manifest["stages"]["result_json"] = rp
+    required = ("leads_scored.csv", "result.json", "brief.md", cfg.get("workbook_name", "Preservation_LoanBook_10yr.xlsx"))
+    for name in required:
+        if not os.path.isfile(os.path.join(run_dir, name)):
+            raise ValueError(f"required output missing: {name}")
+    manifest["status"] = "COMPLETE"
     manifest["log"] = log
     manifest["outputs"] = {"run_dir_files": sorted(os.listdir(run_dir)),
                            "handoff_files": sorted(os.listdir(os.path.join(run_dir, "handoff"))) if os.path.isdir(os.path.join(run_dir, "handoff")) else [],
@@ -820,13 +873,73 @@ def main(argv=None):
                           "brief": manifest["stages"].get("brief"), "queue_counts": scored["queue_band"].value_counts().to_dict() if scored is not None and len(scored) else {},
                           "units_at_risk_headline": uar.get("headline", {}), "book_verdict": uar.get("book_verdict"), "degraded": bool((cal.get("degraded_note") or "").strip()),
                           "handoffs": {fn[:-5]: os.path.join("handoff", fn) for fn in manifest["outputs"]["handoff_files"] if fn.endswith(".json")}}}
-        json.dump(cp, open(os.path.join(sdir, "preservation-loan-book.json"), "w"), indent=2, default=str)
+        cp["run_id"] = run_id
+        atomic_json(os.path.join(sdir, "preservation-loan-book.json"), cp)
         ldir = os.path.join(root, "data", "logs", mid)
         os.makedirs(ldir, exist_ok=True)
         with open(os.path.join(ldir, "asset_management.log"), "a", encoding="utf-8") as fh:
             fh.write(f"{datetime.now().isoformat(timespec='seconds')} preservation-loan-book {status} as_of={as_of.isoformat()} header=\"{cal.get('header', '')}\"\n")
         print(f"[pipeline] checkpoint {os.path.join(sdir, 'preservation-loan-book.json')} ({status})")
     print(f"[pipeline] run dir {run_dir}; manifest.json written")
+
+
+def atomic_json(path, data):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    temp = path + "." + uuid.uuid4().hex + ".tmp"
+    try:
+        with open(temp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, indent=2, default=str)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(temp, path)
+    finally:
+        if os.path.exists(temp):
+            os.remove(temp)
+
+
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--as-of", default=None)
+    parser.add_argument("--from", dest="from_stage", default="discover")
+    if "--help" in argv or "-h" in argv:
+        return execute(argv, "", "")
+    args, _ = parser.parse_known_args(argv)
+    with open(args.config, encoding="utf-8") as fh:
+        cfg = json.load(fh)
+    if args.from_stage not in ("discover", "universe"):
+        raise ValueError("partial restarts are disabled: run from discover/universe to prevent stale artifact reuse")
+    as_of = parse_as_of(args.as_of or cfg.get("as_of_date"))
+    run_id = uuid.uuid4().hex
+    date_dir = os.path.abspath(os.path.join(cfg.get("out_dir", "runs"), as_of.isoformat()))
+    run_dir = os.path.join(date_dir, run_id)
+    os.makedirs(run_dir, exist_ok=False)
+    try:
+        execute(argv, run_dir, run_id)
+        if cfg.get("operations_db"):
+            from plb.operations import connect, import_run
+            db = connect(cfg["operations_db"])
+            try:
+                with open(os.path.join(run_dir, "manifest.json"), encoding="utf-8") as fh:
+                    manifest = json.load(fh)
+                def rows(name):
+                    return pd.read_csv(os.path.join(run_dir, name), dtype=str, keep_default_na=False).to_dict(orient="records")
+                import_run(db, manifest, rows("leads_scored.csv"), rows("events.csv"), rows("agency_calendar.csv"))
+            finally:
+                db.close()
+        # Consumers discover only completely generated outputs via this atomic pointer.
+        atomic_json(os.path.join(date_dir, "latest.json"), {"run_id": run_id, "run_dir": run_dir, "as_of": as_of.isoformat()})
+    except (Exception, SystemExit) as exc:
+        failure = {"run_id": run_id, "status": "FAILED", "as_of": as_of.isoformat(), "error": str(exc), "run_dir": run_dir}
+        atomic_json(os.path.join(run_dir, "failure.json"), failure)
+        atomic_json(os.path.join(date_dir, "last_attempt.json"), failure)
+        if cfg.get("pipeline_mode"):
+            path = os.path.join(cfg.get("pipeline_root", os.getcwd()), "data", "status", cfg.get("market_id") or "market", "asset_management", "preservation-loan-book.json")
+            atomic_json(path, {"agent": "preservation-loan-book", "phase": "asset_management", **failure})
+        raise
+    atomic_json(os.path.join(date_dir, "last_attempt.json"), {"run_id": run_id, "status": "COMPLETE", "run_dir": run_dir})
+    return run_dir
 
 
 if __name__ == "__main__":

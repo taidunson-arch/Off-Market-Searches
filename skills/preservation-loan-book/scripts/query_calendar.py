@@ -47,14 +47,14 @@ def summarize(events: pd.DataFrame, as_of, within_years: float, reg_within_years
     rejected = int((status == "REJECTED").sum())
     suppressed = int((status == "SUPPRESSED").sum())
     stale = int((status == "STALE_CONTRACT_DATE").sum())
-    live = ev[~status.isin(["REJECTED", "SUPPRESSED", "STALE_CONTRACT_DATE"])].copy()
+    live = ev[~status.isin(["REJECTED", "SUPPRESSED", "STALE_CONTRACT_DATE", "RESOLVED", "COMPLETED", "SUPERSEDED", "CANCELLED"])].copy()
     debt_h, reg_h = within_years * 12, reg_within_years * 12
 
     def keep(r):
         mo = r["months_out"]
         fam = r["event_family"]
         if fam == "AGENCY_DEADLINE":
-            return mo is not None and -12 <= mo <= max(debt_h, reg_h)
+            return mo is not None and mo <= max(debt_h, reg_h)
         if mo is None:
             return fam not in ("DEBT", "REGULATORY")
         if fam == "DEBT":
