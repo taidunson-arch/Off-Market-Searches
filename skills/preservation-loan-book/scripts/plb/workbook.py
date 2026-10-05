@@ -45,9 +45,33 @@ PRES_COLS = ["property_id", "property_name", "address", "jurisdiction", "primary
              "units", "units_at_risk", "hap_units_at_risk", "prac_units_at_risk", "psh_units_at_risk", "owner_name", "owner_type", "registered_agent", "programs",
              "owner_cliff_type", "owner_cliff_date", "owner_cliff_band", "withdrawal_anchor_date", "push_anchor_source", "notice_status", "recap_status",
              "mandate_fit", "mandate_eligible_products", "intervention", "intervention_owner", "statutory_cite", "verify_flags"]
+from .risk_dimensions import FRONT, AXES
+
+QUEUE_FRONT = FRONT + [c for c in QUEUE_FRONT if c not in FRONT]
+BOOK_COLS = FRONT + [c for c in BOOK_COLS if c not in FRONT]
+PRES_COLS = FRONT + [c for c in PRES_COLS if c not in FRONT]
+
+
+def _display(frame):
+    return frame.rename(columns={"intervention_score": "legacy_intervention_score", "queue_band": "legacy_queue_band",
+                                 "score_raw": "legacy_score_raw", "board_impact": "legacy_board_impact"})
+
+
+def _dimension_sheets(wb, leads):
+    _write_df(wb.create_sheet("Risk_Dimensions"), _cols(leads, FRONT))
+    for lane, name in (("PRESERVATION", "Preservation_Attention"), ("FINANCIAL", "Financial_Attention"),
+                       ("DATA_GAPS", "Data_Gaps"), ("READINESS_GAPS", "Readiness_Gaps")):
+        selected = leads[leads["attention_lanes"].fillna("").str.split(";").map(lambda values: lane in values)] if "attention_lanes" in leads else leads.iloc[0:0]
+        _write_df(wb.create_sheet(name), _cols(selected, FRONT))
+
+
 WIDTHS = {"property_id": 20, "property_name": 34, "address": 30, "jurisdiction": 14, "owner_name": 34, "owner_type": 24, "programs": 24, "intervention": 30,
           "statutory_cite": 44, "verify_flags": 40, "signals": 40, "next_action": 50, "verify_before_action": 50, "events_in_horizon": 60, "am_officer": 18,
           "registered_agent": 28, "notice_address": 36, "derivation": 44, "source": 30}
+
+
+WIDTHS.update({axis: 28 for axis in AXES})
+WIDTHS.update({key: 55 for key in ("preservation_reasons", "financial_reasons", "data_confidence_reasons", "readiness_reasons")})
 
 
 def _clean(v):
@@ -211,11 +235,12 @@ def _summary_rows(leads: pd.DataFrame, calendar: Dict[str, Any], run_meta: Dict[
     rows += [["Suppressed", (calendar or {}).get("suppressed", 0)], ["Rejected", (calendar or {}).get("rejected", 0)],
              ["helper deadlines", (calendar or {}).get("helper_events", 0)], ["agency act-by", (calendar or {}).get("agency_act_by", 0)],
              ["agency act-by next 90 days", (calendar or {}).get("agency_act_by_next_90_days", 0)], ["stale contract dates", (calendar or {}).get("stale_contract_dates", 0)], []]
-    if "queue_band" in leads:
-        rows.append(["Queue counts"])
-        for t, n in leads["queue_band"].value_counts().items():
-            rows.append([t, int(n)])
-        rows.append([])
+    rows.append(["Independent dimensions", "No combined risk score. Rows can appear in multiple attention lists."])
+    for axis in AXES:
+        if axis in leads:
+            rows.append([axis])
+            rows.extend([str(status), int(count)] for status, count in leads[axis].value_counts().items())
+    rows.append([])
     if "primary_route" in leads:
         rows.append(["Primary route counts"])
         for t, n in leads["primary_route"].value_counts().items():
@@ -250,22 +275,24 @@ def build_workbook(out_path: str, leads: pd.DataFrame, events: pd.DataFrame, cal
     _board_sheet(ws, uar)
 
     ws = wb.create_sheet("Intervention_Queue")
-    q = leads[leads["primary_route"].isin(ROUTES)] if "primary_route" in leads else leads
+    q = leads
     cols = [c for c in QUEUE_FRONT if c in q.columns] + [c for c in q.columns if c not in QUEUE_FRONT]
     t = q[cols].copy()
     t.insert(0, "AM status", "New")
-    _write_df(ws, t)
+    _write_df(ws, _display(t))
     _fill_bases(ws)
     if ws.max_row >= 2:
         dv = DataValidation(type="list", formula1='"' + ",".join(AM_STATUS) + '"', allow_blank=True)
         ws.add_data_validation(dv)
         dv.add(f"A2:A{ws.max_row}")
 
+    _dimension_sheets(wb, leads)
+
     ws = wb.create_sheet("Book_Watchlist")
     bw = leads[leads["universe"] == "our_book"] if "universe" in leads else leads.iloc[0:0]
     t = _cols(bw, BOOK_COLS)
     t.insert(0, "AM status", ["Monitoring" if r == "none" else "New" for r in bw["primary_route"]] if "primary_route" in bw else "Monitoring")
-    _write_df(ws, t)
+    _write_df(ws, _display(t))
     _fill_bases(ws)
     if ws.max_row >= 2:
         dv = DataValidation(type="list", formula1='"' + ",".join(AM_STATUS + ["Monitoring"]) + '"', allow_blank=True)
@@ -274,7 +301,7 @@ def build_workbook(out_path: str, leads: pd.DataFrame, events: pd.DataFrame, cal
 
     ws = wb.create_sheet("Preservation_Queue")
     pq = leads[leads["universe"] == "universe_not_held"] if "universe" in leads else leads.iloc[0:0]
-    _write_df(ws, _cols(pq, PRES_COLS))
+    _write_df(ws, _display(_cols(pq, PRES_COLS)))
     _fill_bases(ws)
 
     ws = wb.create_sheet("Sponsor_Exposure")
@@ -380,7 +407,8 @@ def build_board_packet(out_path: str, leads: pd.DataFrame, units_at_risk: Dict[s
     _board_sheet(ws, units_at_risk or {})
     ws = wb.create_sheet("Preservation_Queue")
     pq = packet[packet["universe"] == "universe_not_held"] if "universe" in packet else packet
-    _write_df(ws, _cols(pq, [c for c in PRES_COLS if c in packet.columns]))
+    _write_df(ws, _display(_cols(pq, [c for c in PRES_COLS if c in packet.columns])))
+    _dimension_sheets(wb, packet)
     _fill_bases(ws)
     ws = wb.create_sheet("Sponsor_Exposure")
     _write_df(ws, sponsor_exposure(packet), {"sponsor_org": 40})

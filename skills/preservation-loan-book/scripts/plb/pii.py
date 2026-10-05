@@ -32,6 +32,9 @@ PUBLIC_PACKET_ALLOW = [
     "notice_status", "tenant_notice_status", "recap_status", "qc_status", "intervention_score", "board_impact", "queue_band", "urgency_band",
     "primary_route", "secondary_routes", "intervention", "intervention_owner", "statutory_cite", "verify_flags", "signals", "as_of_date",
     "withdrawal_anchor_date", "push_anchor_source", "kpi_flags", "next_expected_expiration", "sponsor_cliff_count", "mandate_fit",
+    "preservation_urgency", "financial_risk", "data_confidence", "intervention_readiness", "attention_lanes", "assessment_version",
+    "financial_data_status", "financial_period_end", "readiness_reviewed_on",
+    "preservation_reasons", "financial_reasons", "data_confidence_reasons", "readiness_reasons",
 ]
 REDACTION_CITE = "ORS 192.355(2) personal information exemption; ORS 192.345 conditional exemptions (verify current text)"
 WITHHELD = "individual owner (name withheld; see internal file)"
@@ -71,6 +74,16 @@ def apply_pii_scope(df: pd.DataFrame, scope: str = "organization") -> Tuple[pd.D
     if scope == "organization":
         return out, log
     # public packet
+    summaries = {
+        "preservation_reasons": "Owner-side cliff timing; see reported cliff date and basis.",
+        "financial_reasons": "Configured financial thresholds and evidence freshness; detailed analysis retained in staff file.",
+        "data_confidence_reasons": "Source verification, completeness and freshness; detailed source notes retained in staff file.",
+        "readiness_reasons": "Staff-reported authority, engagement, funding, documents and capacity gates; action approval remains separate.",
+    }
+    for field, summary in summaries.items():
+        if field in out:
+            out[field] = summary
+            log.append({"field": field, "rows_redacted": int(len(out)), "action": "staff source notes replaced by public summary", "cite": REDACTION_CITE})
     keep = [c for c in PUBLIC_PACKET_ALLOW if c in out.columns]
     dropped = [c for c in out.columns if c not in keep]
     out = out[keep].copy()

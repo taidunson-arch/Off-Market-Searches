@@ -120,12 +120,8 @@ def score_frame(leads: pd.DataFrame, events: pd.DataFrame, as_of, scoring_dir=No
                                           "suppression": res["suppression"], "context": res["context"], "agency_profile": profile_name}, default=str)
         rows.append(out)
     scored = pd.DataFrame(rows)
-    if len(scored):
-        scored["_q"] = scored["queue_band"].map(lambda t: QUEUE_ORDER.get(t, 9))
-        scored["_r"] = scored["primary_route"].map(lambda t: ROUTE_ORDER.get(t, 9))
-        scored["_u"] = scored["universe"].map(lambda u: 0 if u == "our_book" else 1)
-        scored["_bi"] = pd.to_numeric(scored["board_impact"], errors="coerce").fillna(0)
-        scored = scored.sort_values(["_q", "_u", "_r", "intervention_score", "_bi"], ascending=[True, True, True, False, False]).drop(columns=["_q", "_r", "_u", "_bi"]).reset_index(drop=True)
+    from plb.risk_dimensions import apply_dimensions
+    scored = apply_dimensions(scored, as_of)
     return scored, results, src, prof
 
 
@@ -216,6 +212,9 @@ def main(argv=None):
     ap.add_argument("--as-of", default=None)
     ap.add_argument("--internal", action="store_true")
     ap.add_argument("--prior", default=None, help="prior leads_scored.csv for KPI rows in units_at_risk.json")
+    ap.add_argument("--financial-observations")
+    ap.add_argument("--financial-policy", help="JSON policy with explicit version and thresholds")
+    ap.add_argument("--readiness-observations")
     a = ap.parse_args(argv)
     as_of = parse_as_of(a.as_of)
     leads = pd.read_csv(a.leads, dtype=str, keep_default_na=False)
@@ -224,6 +223,27 @@ def main(argv=None):
                                              _list(a.owner_types_include), _list(a.owner_types_exclude), a.noah_watch)
     out_dir = os.path.dirname(os.path.abspath(a.out))
     os.makedirs(out_dir, exist_ok=True)
+    from plb.risk_dimensions import financial_observations, readiness_observations, apply_dimensions, assess, dimension_counts
+    def observations(path):
+        return pd.read_csv(path, dtype=str, keep_default_na=False).to_dict(orient="records") if path else []
+    financial, financial_history = financial_observations(observations(a.financial_observations), as_of)
+    readiness, readiness_history = readiness_observations(observations(a.readiness_observations), as_of)
+    population = set(scored["property_id"].astype(str)) if len(scored) else set()
+    unknown = {r["property_id"] for r in financial_history + readiness_history} - population
+    if unknown:
+        raise ValueError(f"observations have unmatched properties: {sorted(unknown)}")
+    policy = json.load(open(a.financial_policy, encoding="utf-8")) if a.financial_policy else {}
+    assess({"property_id": "policy-validation"}, None, as_of, policy)
+    scored = apply_dimensions(scored, as_of, financial, policy, readiness)
+    assessments = [assess(r, financial.get(str(r["property_id"])), as_of, policy, readiness.get(str(r["property_id"]))) for r in scored.to_dict(orient="records")]
+    pd.DataFrame(assessments).to_csv(os.path.join(out_dir, "risk_dimensions.csv"), index=False)
+    for name, payload in (("risk_dimensions", assessments), ("dimension_counts", dimension_counts(assessments)),
+                          ("financial_history", financial_history), ("readiness_history", readiness_history)):
+        with open(os.path.join(out_dir, name + ".json"), "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+    for lane in ("PRESERVATION", "FINANCIAL", "DATA_GAPS", "READINESS_GAPS"):
+        selected = [r for r in scored.to_dict(orient="records") if lane in r.get("attention_lanes", "").split(";")]
+        apply_pii_scope(pd.DataFrame(selected, columns=scored.columns), "internal" if a.internal else "organization")[0].to_csv(os.path.join(out_dir, lane.lower() + "_attention.csv"), index=False)
     scope = "internal" if a.internal else "organization"
     scored_out, _ = apply_pii_scope(scored, scope)
     scored_out.to_csv(a.out, index=False)
@@ -247,8 +267,9 @@ def main(argv=None):
                     "next_expected_expiration", "qc_status", "qc_waived", "agency_action_type", "agency_action_date", "intervention", "intervention_owner", "statutory_cite", "verify_flags"] if c in scored.columns]].to_csv(
         os.path.join(out_dir, "optout_qc_responses.csv"), index=False)
     print(f"[score] scoring tables: {src}; as_of {as_of}; agency_profile {a.agency_profile}; universe {a.universe}; leads {len(scored)}; pii_scope {scope}")
+    print("[assessment] independent dimensions:", dimension_counts(assessments))
     if len(scored):
-        print("[score] queue:", scored["queue_band"].value_counts().to_dict(), "primary routes:", scored["primary_route"].value_counts().to_dict())
+        print("[score] legacy queue (compatibility only):", scored["queue_band"].value_counts().to_dict(), "primary routes:", scored["primary_route"].value_counts().to_dict())
         for band, grp in scored.groupby("queue_band"):
             ua = pd.to_numeric(grp["units_at_risk"], errors="coerce").fillna(0).sum()
             hap = pd.to_numeric(grp["hap_units_at_risk"], errors="coerce").fillna(0).sum()
@@ -263,6 +284,10 @@ def main(argv=None):
         idx = {str(l.get("property_id")): i for i, l in enumerate(leads.to_dict(orient="records"))}
         res_idx = {str(l.get("property_id")): i for i, l in enumerate([r for r in leads.to_dict(orient="records") if a.universe == "all" or r.get("universe") == a.universe])}
         if a.explain in res_idx and res_idx[a.explain] < len(results):
+            print("Four independent assessments:")
+            match = next((r for r in assessments if str(r["property_id"]) == a.explain), {})
+            print(json.dumps(match, indent=2))
+            print("Legacy scoring explanation (compatibility only):")
             print(explain(results[res_idx[a.explain]], leads.to_dict(orient="records")[idx[a.explain]]))
         else:
             print(f"[score] property_id {a.explain} not found")

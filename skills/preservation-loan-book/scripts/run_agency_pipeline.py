@@ -46,7 +46,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from plb import __version__ as PLB_VERSION  # noqa: E402
 from plb.instruments import parse_instruments, grant_exposure  # noqa: E402
-from plb.risk_dimensions import assess, financial_observations  # noqa: E402
 from plb.dates import months_between, parse_as_of, parse_iso  # noqa: E402
 from plb.interventions import meta as imeta  # noqa: E402
 from plb.pii import RECORDS_CLASSIFICATION, apply_pii_scope  # noqa: E402
@@ -284,9 +283,12 @@ def _card(n: int, r: Dict[str, Any], docs_by_pid: Dict[str, List[str]], handoff_
         pass
     physical = [s for s in str(r.get("signals") or "").split(";") if s.startswith(("reac_", "noncompliance", "code_case", "tax_delinq", "dangerous", "occupancy", "tax_exemption"))]
     return [
-        f"### [#{n}] {r.get('property_name')} — {r.get('jurisdiction') or r.get('county_name') or ''}  Route [{r.get('primary_route')}] Queue [{r.get('queue_band')}] Score [{r.get('intervention_score')}] "
+        f"### [#{n}] {r.get('property_name')} — {r.get('jurisdiction') or r.get('county_name') or ''}  Route [{r.get('primary_route')}] Preservation [{r.get('preservation_urgency')}] Financial [{r.get('financial_risk')}] "
         f"Units at risk [{_int(r.get('units_at_risk'))}] Public UPB {_money(r.get('public_upb_at_risk')) if _num(r.get('public_upb_at_risk')) else ('$0' if bm in ('matched', 'self_owned') else 'n/a')}",
         units_line,
+        f"- Data confidence: {r.get('data_confidence')}: {r.get('data_confidence_reasons')}",
+        f"- Readiness: {r.get('intervention_readiness')}: {r.get('readiness_reasons')}",
+        f"- Financial reasons: {r.get('financial_reasons')}",
         f"- First agency act-by: {act}",
         f"- Owner cliff: {cliff}",
         f"- Declared intent / notice status: notice_status {r.get('notice_status') or 'unknown'} · tenant_notice_status {r.get('tenant_notice_status') or 'n/a'} · hap_renewal_request_status {r.get('hap_renewal_request_status') or 'n/a'} · recap_status {r.get('recap_status') or 'none'}"
@@ -401,8 +403,21 @@ def write_brief(run_dir: str, cfg: Dict[str, Any], as_of: date, sources_used: Li
     if not n90:
         L.append("| — | no agency act-by dates inside the next 90 days (or the past 12 months) | | | | | |")
     L.append("")
+    # Independent attention lists include financial concerns even without a near-term cliff or legacy route.
+    L += ["## Independent Risk Dimensions", "", "Read these four assessments separately. Legacy scores do not rank these lists.", ""]
+    for lane, label in (("PRESERVATION", "Preservation attention"), ("FINANCIAL", "Financial attention"),
+                        ("DATA_GAPS", "Data confidence gaps"), ("READINESS_GAPS", "Intervention readiness gaps")):
+        selected = [r for r in rows if lane in str(r.get("attention_lanes") or "").split(";")]
+        L += [f"### {label} ({len(selected)})", ""]
+        for r in selected[:int(cfg.get("max_results") or 200)]:
+            L.append(f"- {r.get('property_name')}: preservation {r.get('preservation_urgency')}; financial {r.get('financial_risk')}; confidence {r.get('data_confidence')}; readiness {r.get('intervention_readiness')}")
+            reason_key = {"PRESERVATION": "preservation_reasons", "FINANCIAL": "financial_reasons", "DATA_GAPS": "data_confidence_reasons", "READINESS_GAPS": "readiness_reasons"}[lane]
+            L.append(f"  Reason: {r.get(reason_key) or 'See risk_dimensions.json'}")
+        if not selected:
+            L.append("- None in this lane.")
+        L.append("")
     # ---- Intervention Queue
-    L += ["## Intervention Queue", ""]
+    L += ["## Intervention Queue", "", "Legacy route suggestions follow. Use the independent attention lists above for risk review.", ""]
     queue = [r for r in rows if r.get("primary_route") in ROUTES]
     cards = [r for r in queue if str(r.get("action_band") or r.get("urgency_band") or "") in QUEUE_BANDS_IN_CARDS]
     rest = [r for r in queue if r not in cards]
@@ -429,12 +444,12 @@ def write_brief(run_dir: str, cfg: Dict[str, Any], as_of: date, sources_used: Li
     # ---- Book Watchlist
     L += ["## Book Watchlist", ""]
     if book_rows:
-        L.append("| property | ids | book_kind | upb | payment_type | maturity (basis) | affordability_end | covenant_status | am_officer | route | queue |")
+        L.append("| property | ids | book_kind | upb | payment_type | maturity (basis) | affordability_end | covenant_status | am_officer | route | preservation urgency |")
         L.append("|---|---|---|---|---|---|---|---|---|---|---|")
         for r in book_rows:
             L.append(f"| {r.get('property_name')} | {r.get('agency_loan_ids') or r.get('grant_ids') or ''} | {r.get('book_kind')} | {_money(r.get('public_upb'))} | {r.get('payment_type') or ''} | "
                      f"{r.get('our_maturity') or 'n/a'} ({r.get('our_maturity_basis') or ''}) | {r.get('affordability_end') or ''} | {r.get('covenant_status') or ''} | {r.get('am_officer') or ''} | "
-                     f"{r.get('primary_route') if r.get('primary_route') != 'none' else 'monitoring'} | {r.get('queue_band')} |")
+                     f"{r.get('primary_route') if r.get('primary_route') != 'none' else 'monitoring'} | {r.get('preservation_urgency')} |")
     else:
         L.append("No book rows in this run (book absent or no servicing extract matched).")
     if unmatched is not None and len(unmatched):
@@ -443,15 +458,15 @@ def write_brief(run_dir: str, cfg: Dict[str, Any], as_of: date, sources_used: Li
     L.append("")
     # ---- Preservation Queue
     L += ["## Preservation Queue (not in our book)", ""]
-    pres = [r for r in rows if r.get("universe") == "universe_not_held" and r.get("queue_band") in ("ESCALATE", "ACT", "PLAN")]
+    pres = [r for r in rows if r.get("universe") == "universe_not_held" and r.get("preservation_urgency") in ("OVERDUE", "CRITICAL", "URGENT", "APPROACHING")]
     if pres:
-        L.append("| property | jurisdiction | queue | score | route | owner cliff | units at risk | HAP | owner type | mandate_fit |")
+        L.append("| property | jurisdiction | preservation urgency | financial risk | route | owner cliff | units at risk | HAP | owner type | mandate_fit |")
         L.append("|---|---|---|---|---|---|---|---|---|---|")
         for r in pres[: int(cfg.get("max_results") or 200)]:
-            L.append(f"| {r.get('property_name')} | {r.get('jurisdiction')} | {r.get('queue_band')} | {r.get('intervention_score')} | {r.get('primary_route')} | {r.get('owner_cliff_type')} {r.get('owner_cliff_date')} | "
+            L.append(f"| {r.get('property_name')} | {r.get('jurisdiction')} | {r.get('preservation_urgency')} | {r.get('financial_risk')} | {r.get('primary_route')} | {r.get('owner_cliff_type')} {r.get('owner_cliff_date')} | "
                      f"{_int(r.get('units_at_risk'))} | {_int(r.get('hap_units_at_risk'))} | {r.get('owner_type')} | {r.get('mandate_fit')} |")
     else:
-        L.append("No inventory-only rows above WATCH.")
+        L.append("No inventory-only rows with a preservation cliff within 36 months.")
     L.append("")
     # ---- Notice Compliance
     L += ["## Notice Compliance", ""]
@@ -719,6 +734,14 @@ def execute(argv, run_dir, run_id):
         cmd = [PY, os.path.join(HERE, "score_preservation.py"), "--leads", os.path.join(run_dir, "leads.csv"), "--events", os.path.join(run_dir, "events.csv"), "--pack", pack,
                "--agency-profile", profile_name, "--universe", cfg.get("universe", "all"), "--horizon-years", hz, "--as-of", as_of.isoformat(),
                "--out", os.path.join(run_dir, "leads_scored.csv")]
+        for key in ("financial_observations", "readiness_observations"):
+            if cfg.get(key):
+                cmd += ["--" + key.replace("_", "-"), cfg[key]]
+                manifest[key + "_input"] = {"file": cfg[key], "sha256": sha256(cfg[key])}
+        if cfg.get("financial_policy"):
+            policy_path = os.path.join(run_dir, "financial_policy.json")
+            atomic_json(policy_path, cfg["financial_policy"])
+            cmd += ["--financial-policy", policy_path]
         if cfg.get("mandate_file"):
             cmd += ["--mandate", cfg["mandate_file"]]
         if cfg.get("scoring_dir"):
@@ -827,22 +850,7 @@ def execute(argv, run_dir, run_id):
     for entity in ("covenants", "events", "evidence", "event_evidence", "actions", "action_events", "linkage_issues"):
         rows = [{k: json.dumps(v, sort_keys=True) if isinstance(v, (dict, list)) else v for k, v in row.items()} for row in graph[entity]]
         pd.DataFrame(rows).to_csv(os.path.join(run_dir, f"model_{entity}.csv"), index=False)
-    observation_rows = []
-    if cfg.get("financial_observations"):
-        observation_path = cfg["financial_observations"]
-        observation_rows = pd.read_csv(observation_path, dtype=str, keep_default_na=False).to_dict(orient="records")
-        manifest["financial_input"] = {"file": observation_path, "sha256": sha256(observation_path)}
-    known_properties = set(scored_frame["property_id"].astype(str))
-    unknown_properties = {str(r.get("property_id")) for r in observation_rows} - known_properties
-    if unknown_properties:
-        raise ValueError(f"financial observations have unmatched properties: {sorted(unknown_properties)}")
-    latest_financials, financial_history = financial_observations(observation_rows, as_of)
-    policy = cfg.get("financial_policy") or {}
-    if policy and not str(policy.get("version") or "").strip():
-        raise ValueError("financial_policy requires an agency-approved version label")
-    risk_rows = [assess(r, latest_financials.get(str(r["property_id"])), as_of, policy) for r in scored_frame.to_dict(orient="records")]
-    pd.DataFrame(risk_rows).to_csv(os.path.join(run_dir, "risk_dimensions.csv"), index=False)
-    atomic_json(os.path.join(run_dir, "financial_history.json"), financial_history)
+    risk_rows = json.load(open(os.path.join(run_dir, "risk_dimensions.json"), encoding="utf-8"))
     # ---- result JSON, manifest, checkpoint
     if os.path.exists(os.path.join(run_dir, "leads_scored.csv")):
         rp = write_result_json(run_dir, cfg, as_of, prof, sources_used, manifest, pack)
@@ -850,6 +858,8 @@ def execute(argv, run_dir, run_id):
         result["instruments"] = positions
         result["book_model"] = graph
         result["risk_dimensions"] = risk_rows
+        result["dimension_counts"] = json.load(open(os.path.join(run_dir, "dimension_counts.json"), encoding="utf-8"))
+        result["legacy_score_notice"] = "intervention_score and queue_band are compatibility diagnostics; use separate dimensions and attention lists"
         atomic_json(rp, result)
         manifest["stages"]["result_json"] = rp
     required = ("leads_scored.csv", "result.json", "brief.md", cfg.get("workbook_name", "Preservation_LoanBook_10yr.xlsx"))
