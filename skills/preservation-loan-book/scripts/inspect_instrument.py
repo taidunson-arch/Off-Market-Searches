@@ -22,6 +22,9 @@ def inspect(db, run_id, instrument_id):
         "actions": rows("""SELECT a.*, c.status AS current_status, c.assigned_to, c.version
             FROM model_actions a LEFT JOIN cases c USING(case_id)
             WHERE a.run_id=? AND a.instrument_id=?""", args),
+        "manual_cases": rows("""SELECT c.* FROM cases c JOIN case_scope s USING(case_id)
+            WHERE s.run_id=? AND s.instrument_id=?""", args)
+            if db.execute("SELECT 1 FROM sqlite_master WHERE name='case_scope'").fetchone() else [],
     }
 
 

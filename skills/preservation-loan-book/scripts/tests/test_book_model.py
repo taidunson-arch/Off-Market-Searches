@@ -73,7 +73,7 @@ def test_book_model_unscoped_and_terminal_events():
 
 def test_book_model_legacy_migration_preserves_case_and_audit():
     # Create the actual pre-model schema, then seed an old immutable snapshot.
-    with patch("plb.book_model.migrate"), closing(connect(":memory:")) as db:
+    with patch("plb.book_model.migrate"), patch("plb.cases.migrate"), closing(connect(":memory:")) as db:
         manifest = {"run_id": "old", "as_of_date": "2026-10-04"}
         db.execute("INSERT INTO runs VALUES(?,?,?)", ("old", "2026-10-04", json.dumps(manifest)))
         db.execute("INSERT INTO properties VALUES(?,?,?)", ("old", "p", json.dumps(leads()[0])))
@@ -102,7 +102,7 @@ def test_book_model_two_loans_same_day_cannot_cross_link_actions():
 
 
 def test_book_model_ambiguous_legacy_case_is_not_guessed():
-    with patch("plb.book_model.migrate"), closing(connect(":memory:")) as db:
+    with patch("plb.book_model.migrate"), patch("plb.cases.migrate"), closing(connect(":memory:")) as db:
         db.execute("INSERT INTO runs VALUES('old','2026-10-04','{}')")
         db.execute("INSERT INTO properties VALUES(?,?,?)", ("old", "p", json.dumps(leads()[0])))
         for iid in ("loan:1", "grant:1"):
@@ -116,7 +116,7 @@ def test_book_model_ambiguous_legacy_case_is_not_guessed():
 
 
 def test_book_model_bad_legacy_snapshot_rolls_back_migration():
-    with patch("plb.book_model.migrate"), closing(connect(":memory:")) as db:
+    with patch("plb.book_model.migrate"), patch("plb.cases.migrate"), closing(connect(":memory:")) as db:
         db.execute("INSERT INTO runs VALUES('old','2026-10-04','{}')")
         db.execute("INSERT INTO properties VALUES(?,?,?)", ("old", "p", json.dumps(leads()[0])))
         db.execute("INSERT INTO evidence VALUES(?,?,?,?)", ("old", "bad", "p", json.dumps(event("loan:missing"))))

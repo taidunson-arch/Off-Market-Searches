@@ -208,6 +208,9 @@ def persist_graph(db, rid, graph, migrate=False):
             case_id = aid
             if not db.execute("SELECT 1 FROM cases WHERE case_id=?", (case_id,)).fetchone():
                 db.execute("INSERT INTO cases(case_id,property_id,event_type,due_date,source_run) VALUES(?,?,?,?,?)", (case_id,r["property_id"],r["action_type"],r["due_date"],rid))
+                if "created_at" in {c[1] for c in db.execute("PRAGMA table_info(cases)")} :
+                    from .cases import initialize
+                    initialize(db, case_id)
                 _audit(db,case_id,"pipeline","CREATED",{"run_id":rid,"instrument_id":r["instrument_id"],"action_id":aid})
         db.execute("INSERT INTO model_actions VALUES(?,?,?,?,?,?,?,?)", (rid,aid,r["property_id"],r["instrument_id"],r["covenant_id"],r["action_type"],r["due_date"],case_id))
     actions = {r["action_id"]:r for r in graph["actions"]}
