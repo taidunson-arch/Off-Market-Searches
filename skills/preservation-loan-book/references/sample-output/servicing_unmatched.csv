@@ -1,0 +1,5 @@
+property_id,property_name,address,zip,book_kind,agency_loan_ids,grant_ids,note
+addr:4ef773722db8,Fixture Authority Court (HACC),PO Box 1510,97222,loan,L-OHCS-0009,,"book row not found in the inventory (crosswalk > address > fuzzy all missed); scored on capital, servicing events and units_assisted"
+addr:2a89bea86fe6,Fixture Badly Typed,77 N Fixture Ave,97217,loan,L-OHCS-0010;L-OHCS-0011,,"book row not found in the inventory (crosswalk > address > fuzzy all missed); scored on capital, servicing events and units_assisted"
+addr:62fa7e40bce7,Hollow Oak Commons,4410 SE Hollow Oak Ct,97206,loan,L-OHCS-0013,,"book row not found in the inventory (crosswalk > address > fuzzy all missed); scored on capital, servicing events and units_assisted"
+addr:38f77ed589a1,Sumner Street Flats,6118 NE Sumner St,97218,loan,L-OHCS-0014,,"book row not found in the inventory (crosswalk > address > fuzzy all missed); scored on capital, servicing events and units_assisted"

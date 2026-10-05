@@ -1,0 +1,90 @@
+{
+  "_schema": "off-market-deal-finder scoring shared adjustments v2.0. Applied by scripts/score_leads.py after per-class factor points are computed from the class JSON. Class files never restate anything in this file.",
+  "version": "2.0",
+  "basis_multipliers": {
+    "RECORDED": 1.0,
+    "REPORTED": 0.9,
+    "DERIVED": 0.8,
+    "ESTIMATED": 0.5,
+    "PROXY": 0.3
+  },
+  "verify_flag_multiplier_overrides": {
+    "Verify — Ambiguous": 0.4
+  },
+  "governing_event_rule": "For each event-driven factor, the basis multiplier is the minimum multiplier across the events that contributed points. A Verify — Ambiguous flag on any contributing event forces 0.40.",
+  "urgency_bands": [
+    {"band": "CRITICAL", "months_out": [0, 12], "timing_fraction": 1.0},
+    {"band": "URGENT", "months_out": [12, 24], "timing_fraction": 0.75},
+    {"band": "APPROACHING", "months_out": [24, 36], "timing_fraction": 0.5},
+    {"band": "MONITOR", "months_out": [36, 60], "timing_fraction": 0.25},
+    {"band": "SCHEDULED", "months_out": [60, null], "timing_fraction": 0.0}
+  ],
+  "tier_bands": [
+    {"tier": "A", "min_score": 70},
+    {"tier": "B", "min_score": 50},
+    {"tier": "C", "min_score": 30},
+    {"tier": "WATCH", "min_score": 0, "requires": "any dated PRESSURE event inside horizon"},
+    {"tier": "EXCLUDED", "requires": "route == excluded"}
+  ],
+  "post_score_multipliers": {
+    "deal_size_fit": {
+      "description": "Deal-size fit is a multiplier on the total score, never a weighted factor. Measured against unit_range and price_or_value_band from the run config.",
+      "inside_band": 1.0,
+      "within_25pct_outside": 0.85,
+      "beyond_25pct_outside": 0.6,
+      "strict_size_fit_true": "hard filter: route excluded"
+    },
+    "mission_fit_affordable": {
+      "description": "Class affordable_regulated only. When the run config programs filter is set and the property's programs do not intersect it.",
+      "mismatch": 0.6
+    },
+    "noi_source_weight": {
+      "description": "Applied inside class 2/3 refinance-gap factors, not to the total.",
+      "tape_reported": 1.0,
+      "user_supplied": 1.0,
+      "benchmark_estimate": 0.7
+    }
+  },
+  "penalties": [
+    {"id": "recent_1031", "event_type": "RECENT_1031_ACQUISITION", "condition": "hold_years < 3", "points": -10, "classes": ["sfr_small_res", "market_rate_mf", "affordable_regulated"]},
+    {"id": "recent_rehab", "field": "rehab_year", "condition": "rehab_year >= as_of_year - 5", "points": -15, "classes": ["market_rate_mf", "affordable_regulated"]}
+  ],
+  "suppressions": [
+    {"id": "suppress_until", "event_type": "SUPPRESS_UNTIL", "condition": "event_date > as_of", "effect": "all DEBT-family factors score 0; REGULATORY, OWNERSHIP, TAX_LIEN, PHYSICAL, OPERATING factors unchanged", "classes": ["sfr_small_res", "market_rate_mf", "affordable_regulated"]},
+    {"id": "in_development", "field": "status", "condition": "status == 'In Development'", "effect": "route excluded; tier EXCLUDED", "classes": ["affordable_regulated", "market_rate_mf"]},
+    {"id": "on_market", "field": "on_market", "condition": "on_market == true (active listing found by deal-finder dedupe)", "effect": "route excluded; listed in on_market_excluded[]", "classes": ["sfr_small_res", "market_rate_mf", "affordable_regulated"]},
+    {"id": "cured_or_released", "event_type": ["NOD_RESCISSION", "UNENCUMBERED"], "condition": "NOD_RESCISSION after NOD_RECORDED, or Reconveyance closing the only HARD_DISTRESS event", "effect": "remove the HARD_DISTRESS event (status RETIRED); UNENCUMBERED keeps the lead as route watch with signal unencumbered", "classes": ["sfr_small_res", "market_rate_mf"]}
+  ],
+  "routing_rules": [
+    {"id": "lender_counterparty", "condition": "any of TRUSTEES_DEED, RECEIVER_APPOINTED, SPECIAL_SERVICING present AND equity_cushion_pct <= 0 (or unknown with TRUSTEES_DEED)", "route": "lender_counterparty", "owner_outreach": false},
+    {"id": "counsel_only", "event_type": "BANKRUPTCY_FILED", "condition": "case active", "effect": "compliance_gates += counsel_only; route unchanged"},
+    {"id": "housing_authority_government", "owner_type": ["housing_authority", "government"], "route": "partnership_preservation", "tier_cap": "B", "note": "acquisition score is still shown"},
+    {"id": "nonprofit_rofr_or_prac", "owner_type": ["lihtc_partnership_nonprofit_gp", "nonprofit"], "condition": "ROFR_RECORDED present OR hud_contract == 'Project Rental Assistance Contract' OR programs contains PRAC", "route": "partnership_preservation"},
+    {"id": "rofr_recorded", "event_type": "ROFR_RECORDED", "effect": "signals += rofr_encumbered; route partnership_preservation"},
+    {"id": "assumption_play", "condition": "assumable_debt == true AND rate_spread_bp > 150 AND no HARD_DISTRESS event", "effect": "signals += assumption_play; route assumption_play when no other PRESSURE route applies"},
+    {"id": "watch", "condition": "score < 30 AND any dated PRESSURE event inside horizon", "route": "watch"}
+  ],
+  "caps": [
+    {"id": "proxy_only", "condition": "every governing event has basis PROXY", "tier_cap": "C", "label": "proxy-only"},
+    {"id": "no_debt_no_reg_mf", "classes": ["market_rate_mf", "affordable_regulated"], "condition": "no DEBT-family and no REGULATORY-family event inside horizon", "tier_cap": "C"},
+    {"id": "housing_authority_cap", "owner_type": ["housing_authority", "government"], "tier_cap": "B"},
+    {"id": "lift_60yr", "classes": ["affordable_regulated"], "condition": "programs contains LIFT or extended-use end > 30 years out", "effect": "timing factor 0; urgency SCHEDULED"}
+  ],
+  "decay": {
+    "description": "Events older than 180 days count at 50% in stacking factors, except permanent states.",
+    "half_weight_after_days": 180,
+    "permanent_event_types": ["HOLD_YEARS", "DEPRECIATION_EXHAUSTED", "ABSENTEE_TIER", "HECM_ON_RECORD", "DOR_DEFERRAL_LIEN", "ENTITY_ADMIN_DISSOLVED", "UNENCUMBERED"]
+  },
+  "stacking_rules": {
+    "independence": "Families count once each. Assessor-derived facts (HOLD_YEARS, ABSENTEE_TIER, TAX_DELINQUENT_YEARS from the same roll) count as one family contribution. Recorder documents and court records are independent legs.",
+    "families": ["DEBT", "REGULATORY", "HARD_DISTRESS", "TAX_LIEN", "PHYSICAL", "OWNERSHIP", "OPERATING"]
+  },
+  "evidence_rule": {
+    "description": "Every factor stores evidence[] (event ids with date, basis, source), reading (one line: how the seller-side decision maker experiences it) and lever (approach angle). A factor with empty evidence scores 0 regardless of band match."
+  },
+  "deal_size_defaults": {
+    "sfr_small_res": {"unit_range": [1, 4]},
+    "market_rate_mf": {"unit_range": [5, null]},
+    "affordable_regulated": {"unit_range": [5, null]}
+  }
+}

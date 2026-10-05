@@ -1,0 +1,101 @@
+# Dataset schemas for the <st>-<metro> market pack.
+# Parsed by scripts/omdf/schema.py. Declare EVERY date column of every file-drop dataset with an
+# explicit strptime format and a basis; a date-like column without a declared format stops the
+# adapter with "No Format Declared". Run `python scripts/date_profile.py <file>` to get a proposed
+# YAML snippet, then paste and review it. Use `format: auto` only when a column genuinely mixes
+# formats; rows with both fields <= 12 then get "Verify — Ambiguous" and both parses in alt_dates.
+#
+# Keys used by the adapters:
+#   match_columns      columns whose presence identifies this dataset (used to auto-detect inbox files)
+#   encoding           utf-8-sig when the file carries a BOM
+#   key                columns that identify a property across releases (never row order)
+#   dates.<col>        {format, basis, event?, program?, confidence?, recompute_if_blank?}
+#   derived_events     {EVENT: {from, add_years, add_years_if_program?, basis, window_months, derivation?}}
+#   validations        rules: month_le_12 | latest_equals_max_components | expiration_ge_compliance_start |
+#                      compliance_start_within_months_after_closing | custom
+#   normalize          per-column cleanup (title_case, typo_map, map, blank, drop_values)
+#   filters            exclude: {column: [values]}
+#   county_fips        county name -> FIPS for county_field geo resolution
+#   soa_affordable_codes  (HUD FHASL) Section-of-the-Act tokens that mark affordable programs
+
+<state>_hfa_inventory:
+  match_columns: ["<unique column 1>", "<unique column 2>"]
+  encoding: utf-8-sig
+  key: ["<Property Name column>", "<Address column>"]
+  dates:
+    <closing_date_column>:          {format: "<%m/%d/%Y or %d/%m/%Y as profiled>", basis: REPORTED}
+    <compliance_start_column>:      {format: "<fmt>", basis: REPORTED}
+    <lihtc_extended_use_end_column>: {format: "<fmt>", basis: REPORTED, event: LIHTC_EXTENDED_USE_END, program: LIHTC_9}
+    <soft_program_end_column>:      {format: "<fmt>", basis: REPORTED, event: SOFT_PROGRAM_END, program: HOME}
+    <hap_expiration_column>:        {format: "<fmt>", basis: REPORTED, event: HAP_EXPIRATION, confidence: 0.70}
+    <usda_maturity_column>:         {format: "<fmt>", basis: REPORTED, event: USDA_515_MATURITY}
+    <latest_end_column>:            {format: "<fmt>", basis: REPORTED, event: REGULATORY_LATEST_END, recompute_if_blank: max_of_components}
+  derived_events:
+    LIHTC_COMPLIANCE_END:        {from: <compliance_start_column>, add_years: 15, basis: DERIVED, window_months: 12}
+    LOAN_MATURITY:               {from: <closing_date_column>, add_years: 15, add_years_if_program: {LIHTC_4: 17}, basis: PROXY, window_months: 36, derivation: "<closing date> + 15y mini-perm (17y 4% bond)"}
+  validations:
+    - {rule: month_le_12, on_fail: "Rejected — Out of Range"}
+    - {rule: latest_equals_max_components, whitelist: [], on_fail: "Verify — Conflicting Sources"}
+    - {rule: expiration_ge_compliance_start, when_both_present: true, on_fail: "Verify — Conflicting Sources"}
+    - {rule: compliance_start_within_months_after_closing, months: 36, when_both_present: true, on_fail: "Verify — Conflicting Sources"}
+  normalize:
+    <County column>: title_case
+    <City column>: {title_case: true, typo_map: {}}
+    <Owner Type column>: {title_case: true, map: {}, blank: infer_from_owner_name}
+    <Property Type column>: {drop_values: []}
+  filters:
+    exclude: {<Status column>: ["<in-development value>"]}
+  county_fips: {<County A>: "<FIPS>", <County B>: "<FIPS>"}
+
+hud_fhasl_active:
+  match_columns: ["HUD Project Number", "Maturity Date", "Section of the Act"]
+  dates: {"Initial Endorsement Date": {format: excel_date}, "Final Endorsement Date": {format: excel_date}, "Maturity Date": {format: excel_date, basis: RECORDED, event: LOAN_MATURITY}}
+  derived_events: {PREPAY_WINDOW_OPEN: {from: "Final Endorsement Date", add_years: 10, basis: DERIVED, window_months: 6}}
+  soa_affordable_codes: ["236", "221(d)(3)", "202", "811", "542"]
+
+hud_mf_assistance_sec8:
+  match_columns: ["property_id", "tracs_overall_expiration_date"]
+  dates: {tracs_effective_date: {format: excel_date}, tracs_overall_expiration_date: {format: excel_date, basis: REPORTED, event: HAP_EXPIRATION, confidence: 0.70}}
+
+# ---- optional per-market blocks for the generic adapters (copy, then confirm every field name from the live header)
+recorder_index_export:
+  # normalize_recorder_index.py reads these canonical names; rename the county export before dropping it.
+  match_columns: ["instrument_no", "doc_type", "recording_date", "grantor", "grantee"]
+  verified_live: false
+  optional_columns: ["parcel_id", "address", "city", "zip", "county_fips", "state", "stated_principal", "maturity_date", "sale_date", "sum_owing", "units"]
+  dates:
+    recording_date: {format: "%Y-%m-%d", basis: RECORDED}
+    maturity_date:  {format: "%Y-%m-%d", basis: RECORDED, event: LOAN_MATURITY}
+    sale_date:      {format: "%Y-%m-%d", basis: RECORDED}
+  doc_type_map:   # adjust document-type wording to the state's recorder vocabulary (judicial states: lis pendens, not NOD)
+    - {contains: "notice of default", event: NOD_RECORDED}
+    - {contains: "notice of trustee's sale", event: NOTS_RECORDED}
+    - {contains: "lis pendens", event: LIS_PENDENS}
+    - {contains: "trustee's deed", event: TRUSTEES_DEED}
+    - {contains: "rescission", event: NOD_RESCISSION}
+    - {contains: "modification", event: LOAN_MODIFIED}
+    - {contains: "reconveyance", event: RECONVEYANCE}
+    - {contains: "deed of trust", event: TRUST_DEED}
+    - {contains: "mortgage", event: TRUST_DEED}
+  refinance_window_days: 90
+  lender_dictionary: ../../../assets/lender_type_dictionary.csv
+  default_county_fips: "<FIPS>"
+
+assessor_taxlots:
+  # normalize_assessor_taxlots.py; rename the assessor export to these names (SAIL / RLIS vocabulary)
+  match_columns: ["NAME", "ADDR1", "SITUSADDR", "DEED_DATE"]
+  verified_live: false
+  optional_columns: ["PROPID", "MAPTAXLOT", "CITY", "STATE", "ZIP", "SITUSCITY", "SITUSZIP", "COUNTY", "UNITS", "ACTYEARBUILT", "SALE_DATE", "SALE_PRICE", "EXEMPTION", "ROLLLAND", "ROLLIMP", "ROLLM50", "DELQ_YEARS"]
+  dates: {DEED_DATE: {format: "%Y-%m-%d", basis: RECORDED}, SALE_DATE: {format: "%Y-%m-%d", basis: RECORDED}}
+  numeric: {int_columns: ["UNITS", "ACTYEARBUILT", "DELQ_YEARS"], float_columns: ["SALE_PRICE", "ROLLLAND", "ROLLIMP", "ROLLM50"]}
+  default_county_fips: "<FIPS>"
+  # In states where assessed value IS market value, set av_is_market true in market-params.json and ROLLM50 may stand in for RMV.
+
+state_preservation_forecast:
+  # normalize_ohcs_forecast.py pattern for a state HFA expiring-use list; map the agency's status vocabulary here
+  match_columns: ["Property Name", "Preservation Status"]
+  verified_live: false
+  key: ["Property Name", "Address"]
+  dates: {"Expiration Date": {format: "%m/%d/%Y", basis: REPORTED, event: REGULATORY_LATEST_END}, "Notice Date": {format: "%m/%d/%Y", basis: RECORDED, event: PRESERVATION_NOTICE_RECEIVED}}
+  status_map: {notice_received: [], first_notice: [], second_notice: [], at_risk: [], preserved: []}
+  signals: {on_state_expiring_list: true}

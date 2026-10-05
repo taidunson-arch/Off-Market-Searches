@@ -1,0 +1,547 @@
+{
+  "as_of_date": "2026-10-04",
+  "within_years": 10.0,
+  "regulatory_within_years": 10.0,
+  "events": 320,
+  "events_all": 915,
+  "by_basis": {
+    "RECORDED": 20,
+    "REPORTED": 217,
+    "DERIVED": 83,
+    "ESTIMATED": 0,
+    "PROXY": 0
+  },
+  "by_family": {
+    "DEBT": {
+      "RECORDED": 10,
+      "REPORTED": 5,
+      "DERIVED": 0,
+      "ESTIMATED": 0,
+      "PROXY": 0
+    },
+    "OPERATING": {
+      "RECORDED": 1,
+      "REPORTED": 0,
+      "DERIVED": 0,
+      "ESTIMATED": 0,
+      "PROXY": 0
+    },
+    "REGULATORY": {
+      "RECORDED": 9,
+      "REPORTED": 212,
+      "DERIVED": 83,
+      "ESTIMATED": 0,
+      "PROXY": 0
+    }
+  },
+  "suppressed": 0,
+  "rejected": 0,
+  "stale_contract_dates": 0,
+  "helper_events": 595,
+  "helper_by_type": {
+    "HAP_OPTOUT_NOTICE_DEADLINE": 58,
+    "HAP_OPTOUT_PACKAGE_DUE": 57,
+    "INSPECTION_DUE": 2,
+    "PRESERVATION_NOTICE_WINDOW": 118,
+    "PUSH_FIRST_NOTICE_DUE": 67,
+    "PUSH_SECOND_NOTICE_DUE": 67,
+    "PUSH_WINDOW_PREP": 66,
+    "QC_RESPONSE_DUE": 1,
+    "REGULATORY_LATEST_END": 93,
+    "TENANT_NOTICE_WINDOW": 66
+  },
+  "agency_act_by": 384,
+  "agency_act_by_next_90_days": 20,
+  "agency_by_type": {
+    "HAP_OPTOUT_NOTICE_DEADLINE": 58,
+    "HAP_OPTOUT_PACKAGE_DUE": 57,
+    "INSPECTION_DUE": 2,
+    "PUSH_FIRST_NOTICE_DUE": 67,
+    "PUSH_SECOND_NOTICE_DUE": 67,
+    "PUSH_WINDOW_PREP": 66,
+    "QC_RESPONSE_DUE": 1,
+    "TENANT_NOTICE_WINDOW": 66
+  },
+  "by_event_type": {
+    "AFFORDABILITY_PERIOD_END": 8,
+    "AGENCY_LOAN_MATURITY": 10,
+    "COVENANT_DEFAULT": 1,
+    "GRANT_RECAPTURE_END": 1,
+    "HAP_EXPIRATION": 68,
+    "LIHTC_COMPLIANCE_END": 83,
+    "LIHTC_EXTENDED_USE_END": 43,
+    "LOAN_MATURITY": 1,
+    "SOFT_PROGRAM_END": 101,
+    "USDA_515_MATURITY": 4
+  },
+  "by_urgency": {
+    "OVERDUE": 0,
+    "CRITICAL": 29,
+    "URGENT": 29,
+    "APPROACHING": 44,
+    "MONITOR": 65,
+    "SCHEDULED": 153,
+    "BEYOND": 0
+  },
+  "properties": 246,
+  "header": "RECORDED 20 / REPORTED 217 / DERIVED 83 / ESTIMATED 0 / PROXY 0 / Suppressed 0 / Rejected 0 | helper deadlines 595 (notice arithmetic, LATEST duplicates; not counted above) | agency act-by 384 (next 90 days 20)",
+  "agency_profile": "hfa",
+  "agency_name": "Oregon Housing and Community Services",
+  "geography_mode": "metro_core",
+  "counties": [
+    "41051",
+    "41067",
+    "41005"
+  ],
+  "horizon_years": 10.0,
+  "regulatory_horizon_years": 10.0,
+  "rows_in_geography": 810,
+  "rows_excluded_in_development": 46,
+  "pipeline_not_scored": [
+    {
+      "property_name": "Cascade Creek, fka Bornstedt Village",
+      "address": "38272 HWY 211",
+      "city": "Sandy",
+      "status": "In Development",
+      "units": 78,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Hillside Park - Building C",
+      "address": "2889 Hillside Ct",
+      "city": "Milwaukie",
+      "status": "In Development",
+      "units": 100,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Marylhurst Commons (Greenbrae)",
+      "address": "3190 Furman Drive",
+      "city": "Lake Oswego",
+      "status": "In Development",
+      "units": 100,
+      "owner_name": "MHNW 20 Marylhurst Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Good Shepherd Village",
+      "address": "12596 SE 162nd Avenue",
+      "city": "Happy Valley",
+      "status": "In Development",
+      "units": 143,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Estacada Apartments II",
+      "address": "30813 SE Eagle Creek Rd",
+      "city": "Estacada",
+      "status": "In Development",
+      "units": 36,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Las Flores Apartments fka Maple Apts",
+      "address": "14338 S Maple Lane Court",
+      "city": "Oregon City",
+      "status": "In Development",
+      "units": 171,
+      "owner_name": "Maple OC Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "85 Stories Group 7 (4 Scattered-Sites)",
+      "address": "915 NE Schuyler Street",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 115,
+      "owner_name": "Home Forward",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Powellhurst Apartments",
+      "address": "SE 122nd & Harold",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 65,
+      "owner_name": "Harold Powellhurst Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Glisan Tower",
+      "address": "9919 NE Glisan Street",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 105,
+      "owner_name": "3D Holdings, LLC",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Tiller Terrace (fka Goose Hollow)",
+      "address": "610 SW 17th Ave",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 214,
+      "owner_name": "Goose Hollow Affordable Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Park Avenue Apartments (Portland)",
+      "address": "2055-2057, 2061 SW Park Ave",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 91,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Dekum Phase 2",
+      "address": "7003 NE 27th Ave (Parcel 2)",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 93,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Peaceful Villa",
+      "address": "2835 SE 47th Ave",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 166,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Saltzman Road Apartments",
+      "address": "1035 NW Saltzman Road",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 53,
+      "owner_name": "Saltzman Affordable Apartments LP",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Canopy Apts at Powell (fka USA Powell)",
+      "address": "12439-12529 SE Powell Boulevard",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 166,
+      "owner_name": "Powell 686, LP",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "85 Stories Group 7 (4 Scattered-Sites)",
+      "address": "18270 SE Yamhill Street",
+      "city": "Gresham",
+      "status": "In Development",
+      "units": 32,
+      "owner_name": "Home Forward",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Minnesota Places",
+      "address": "1208 N Jessup St.",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 71,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Grace Peck Terrace",
+      "address": "1839 NE 14th Avenue",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 95,
+      "owner_name": "Home Forward",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Francis + Clare",
+      "address": "1131 SE Oak Street",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 61,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Meridian Gardens",
+      "address": "11312- 11320 & 11250 SE Division St.",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 85,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Alder 9",
+      "address": "820 SE Alder St",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 20,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "5020 N Interstate",
+      "address": "5020 N Interstate Ave",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 63,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "The Bria Phase II (146th Apartments II)",
+      "address": "51 NE 146th Avenue",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 29,
+      "owner_name": "146th II Apartments Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Anna Mann",
+      "address": "1021 NE 33rd Ave",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 129,
+      "owner_name": "Anna Mann Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Troutdale Apartments",
+      "address": "SW Kendall and SW 2nd",
+      "city": "Troutdale",
+      "status": "In Development",
+      "units": 94,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Strong Family Project",
+      "address": "TBD",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 75,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Fairfield",
+      "address": "1103-1121 SW Harvey Milk Street",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 75,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Traditions at Hazelwood (fka Polaris at Hazelwood)",
+      "address": "10413, 10425, 10439 E Burnside St",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 211,
+      "owner_name": "Traditions at Hazelwood LLC",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Alberta Alive",
+      "address": "4957 NE 8th",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 52,
+      "owner_name": "Alberta Alive Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Killingsworth Housing",
+      "address": "4317 NE Killingsworth St",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 84,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "85 Stories Group 7 (4 Scattered-Sites)",
+      "address": "19401-19463 SE Yamhill Street",
+      "city": "Gresham",
+      "status": "In Development",
+      "units": 32,
+      "owner_name": "Home Forward",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Glisan - PSH",
+      "address": "7450 NE Glisan Street",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 41,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Kafoury Court Apartments",
+      "address": "4080 NE Grand",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 40,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "M Carter Commons",
+      "address": "TBD",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 62,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Hazel Ling Yee Apartments (fka Powell)",
+      "address": "3000 SE Powell Blvd",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 80,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "85 Stories Group 7 (4 Scattered-Sites)",
+      "address": "600-658 SE 217th Avenue",
+      "city": "Gresham",
+      "status": "In Development",
+      "units": 30,
+      "owner_name": "Home Forward",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Kentonwood Dimensions",
+      "address": "1603 N Willis Blvd",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 44,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Joyce, The",
+      "address": "322 SW 11TH AVE",
+      "city": "Portland",
+      "status": "In Development",
+      "units": 66,
+      "owner_name": "CPAH Joyce Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Woodland Hearth",
+      "address": "11655 SW Pacific Hwy",
+      "city": "Tigard",
+      "status": "In Development",
+      "units": 63,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Plambeck Gardens",
+      "address": "23500 SW Boones Ferry Rd",
+      "city": "Tualatin",
+      "status": "In Development",
+      "units": 116,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Altura (fka Goldcrest)",
+      "address": "SW 172nd Terrace & SW Goldcrest Lane",
+      "city": "Beaverton",
+      "status": "In Development",
+      "units": 75,
+      "owner_name": "Goldcrest Apartments LLC",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Dolores",
+      "address": "9985 NE Walker Road",
+      "city": "Hillsboro",
+      "status": "In Development",
+      "units": 18,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "HAWC Scattered Sites Portfolio",
+      "address": "Four Sties in Washington County",
+      "city": "Tigard",
+      "status": "In Development",
+      "units": 236,
+      "owner_name": "HAWC AHP4 LP",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "SCM Main Street (fka Blackbird & Main Apts fka Scholls Ferry Apts)",
+      "address": "17811 SW Scholls Ferry Road",
+      "city": "Beaverton",
+      "status": "In Development",
+      "units": 164,
+      "owner_name": "Blackbird & Main Housing Associates Limited Partnership",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Plaza Los Amigos",
+      "address": "1910 N Davis Street",
+      "city": "Cornelius",
+      "status": "In Development",
+      "units": 113,
+      "owner_name": "Bienestar, Inc.",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    },
+    {
+      "property_name": "Dartmouth Crossing",
+      "address": "11750 & 1180 SW 69th Ave",
+      "city": "Tigard",
+      "status": "In Development",
+      "units": 85,
+      "owner_name": "",
+      "note": "In Development: not scored; see map-progress-monitor / map-troubled-project-escalator"
+    }
+  ],
+  "book_present": true,
+  "book_coverage": "partial",
+  "book_rows": 14,
+  "book_rows_matched": 9,
+  "book_rows_unmatched": 4,
+  "book_join_grades": {
+    "address": 8,
+    "unmatched": 4,
+    "fuzzy": 1
+  },
+  "book_match_counts": {
+    "not_in_extract": 756,
+    "matched": 8,
+    "book_only": 4
+  },
+  "notice_compliance_breaches": 0,
+  "push_window_open_count": 2,
+  "notice_log_unknown_share": 1.0,
+  "include_proxies": false,
+  "noah_watch": false,
+  "degraded_note": "forecast / CA notice statuses absent: notice_status unknown for inventory rows (silence is not inferred). ",
+  "adapters": [
+    "agency_servicing_extract",
+    "ohcs_affordable_housing_inventory"
+  ],
+  "log": [
+    "$ /usr/local/bin/python3 /home/user/preservation-loan-book/scripts/ingest_servicing_extract.py --input scripts/tests/fixtures/agency_servicing_sample.csv --agency-profile hfa --out-dir /tmp/claude-0/-home-user/7bb5c89e-a260-588a-815c-3462cdc087de/scratchpad/plbrun/us-or-portland-metro/2026-10-04/adapter_agency_servicing --as-of 2026-10-04 --horizon-years 10.0 --pack references/sources/oregon-portland",
+    "[servicing] rows 14 valid 14 rejected 0 leads 14 events 31 by_kind {'loan': 13, 'grant': 1}\n[servicing] basis breakdown: RECORDED 27 / REPORTED 1 / DERIVED 0 / ESTIMATED 0 / PROXY 0",
+    "$ /usr/local/bin/python3 /home/user/preservation-loan-book/scripts/ohcs_inventory_targets.py --input /tmp/claude-0/-home-user/7bb5c89e-a260-588a-815c-3462cdc087de/scratchpad/d/Oregon_Affordable_Housing_Inventory_20261002.csv --mode metro_core --out-dir /tmp/claude-0/-home-user/7bb5c89e-a260-588a-815c-3462cdc087de/scratchpad/plbrun/us-or-portland-metro/2026-10-04/adapter_ohcs_affordable_housing_inventory --as-of 2026-10-04 --horizon-years 10.0 --regulatory-horizon-years 10.0 --pack references/sources/oregon-portland --counties 41051,41067,41005",
+    "[ohcs] mode=metro_core counties=['41051', '41067', '41005'] rows_total=1819 rows_in_geography=810 in_development_excluded=46 leads=764 events=1274 (+472 helper deadlines, 33 stale HUD dates) vintage=20261002 (filename)\n[ohcs] basis breakdown: RECORDED 0 / REPORTED 1000 / DERIVED 274 / ESTIMATED 0 / PROXY 0 / Suppressed 0 / Rejected 0 | helper deadlines 472 (notice arithmetic, LATEST duplicates; not counted above) | agency act-by 0 (next 90 days 0)\n[ohcs] OHCS Funded? true: 374 rows; PROXY mini-perm maturities excluded (opt in with --include-proxies)\n[ohcs] wrote /tmp/claude-0/-home-user/7bb5c89e-a260-588a-815c-3462cdc087de/scratchpad/plbrun/us-or-portland-metro/2026-10-04/adapter_ohcs_affordable_housing_inventory/leads.csv, events.csv, rejects.csv, calendar_summary.json, leads.json"
+  ]
+}

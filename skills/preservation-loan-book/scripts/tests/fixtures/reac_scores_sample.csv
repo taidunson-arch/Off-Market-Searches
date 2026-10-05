@@ -1,0 +1,3 @@
+property_id,property_name,address,city,state,zip,county,inspection_score,inspection_date,prior_score,protocol
+800012345,St Anthony Village,3560 SE 79th Street,Portland,OR,97206,Multnomah,54,2026-04-12,72,nspire
+800067890,Powell Plaza I,13320-1 SE Powell Boulevard,Portland,OR,97236,Multnomah,88,2026-02-20,90,nspire

@@ -1,0 +1,133 @@
+{
+  "_schema": "off-market-deal-finder class scoring v2.0. See references/pipeline-contract.md Section 11 for the band schema and references/scoring/shared_adjustments.json for multipliers, tiers, caps and suppressions. Weights sum to 100.",
+  "class": "sfr_small_res",
+  "version": "2.0",
+  "total_weight": 100,
+  "factors": [
+    {
+      "name": "time_pressure",
+      "weight": 25,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 25,
+      "bands": [
+        {"id": "nod_0_30d", "event_type": "NOD_RECORDED", "signal": null, "match": {"field": "days_since", "op": "between", "value": [0, 31]}, "points": 15, "reading": "Lender has elected to sell; owner still controls the outcome and competitors keyed on NODs are arriving now.", "lever": "Fast, respectful first touch: options, not price."},
+        {"id": "nod_31_90d", "event_type": "NOD_RECORDED", "signal": null, "match": {"field": "days_since", "op": "between", "value": [31, 91]}, "points": 22, "reading": "Publication is approaching; the owner knows the sale date and has stopped hoping it goes away.", "lever": "Reinstatement math, short-pay or sale-before-sale timeline."},
+        {"id": "nod_91_to_cure", "event_type": "NOD_RECORDED", "signal": null, "match": {"all": [{"field": "days_since", "op": "gte", "value": 91}, {"field": "detail", "op": "in", "value": ["publication_running", "pre_cure", null]}]}, "points": 25, "reading": "Cure deadline (sale minus 5 days) is weeks away; this is maximum urgency.", "lever": "Certainty of close before the cure deadline; lender-consent paths."},
+        {"id": "nod_postponed", "event_type": "NOD_RECORDED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "postponed"}, "points": 18, "reading": "Sale postponed (up to 180 days allowed); owner is negotiating or stalling.", "lever": "Ask what the postponement is for; offer the alternative."},
+        {"id": "wa_nots", "event_type": "NOTS_RECORDED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 24, "reading": "Washington's first recorded instrument is already the sale notice; cure runs to the 11th day before sale.", "lever": "Immediate outreach; RCW 61.34 gate before any leaseback."},
+        {"id": "pre_nod_trustee", "event_type": "SUCCESSOR_TRUSTEE_APPOINTED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 11, "reading": "Lender substituted a foreclosure trustee; NOD typically follows within weeks.", "lever": "Reach the owner before the NOD crowd; set a pre-NOD watch."},
+        {"id": "pre_nod_ofap", "event_type": "OFAP_CERT_RECORDED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 11, "reading": "Resolution conference completed; the lender is clearing the last statutory step before recording the NOD.", "lever": "Same as trustee appointment; re-score when NOD records."},
+        {"id": "tax_foreclosure_list", "event_type": "TAX_FORECLOSURE_LIST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 20, "reading": "Three years delinquent and published; the county has filed for judgment.", "lever": "Payoff at closing is small relative to equity; simple sale."},
+        {"id": "tax_redemption", "event_type": "TAX_REDEMPTION_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 24]}, "points": 25, "reading": "Judgment entered; redemption period running; owner can still redeem by paying.", "lever": "Redeem-and-sell structure; deadline math."},
+        {"id": "judicial_complaint", "event_type": "JUDICIAL_FORECLOSURE_FILED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 15, "reading": "HOA or private lender suing to foreclose; 6-12 months to sheriff's sale.", "lever": "Lien payoff and clean exit before judgment."},
+        {"id": "ch13_dismissed_prior_nod", "event_type": "CH13_DISMISSED", "signal": null, "match": {"all": [{"field": "months_out", "op": "exists"}, {"field": "detail", "op": "eq", "value": "prior_nod"}]}, "points": 22, "reading": "Stay lifted; foreclosure resumes where it left off.", "lever": "Speed; the lender will not wait again."},
+        {"id": "probate_alone", "event_type": "PROBATE_FILED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 7, "reading": "Estate open; no statutory clock on the house, only on the estate.", "lever": "Patient letter to the personal representative after 60-120 days."}
+      ],
+      "modifiers": []
+    },
+    {
+      "name": "signal_stacking",
+      "weight": 20,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 20,
+      "bands": [
+        {"id": "families_2", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "eq", "value": 2}, "points": 10, "reading": "Two independent records agree something is wrong.", "lever": "Lead with the fact the owner already knows about."},
+        {"id": "families_3", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "eq", "value": 3}, "points": 15, "reading": "Three independent records; distress is not an artifact of one dataset.", "lever": "Multi-channel outreach is justified."},
+        {"id": "families_4plus", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "gte", "value": 4}, "points": 20, "reading": "Converging distress across debt, estate, tax and condition.", "lever": "Highest priority; personal visit if local."}
+      ],
+      "modifiers": [
+        {"id": "nod_plus_probate", "event_type": null, "signal": "combo_nod_probate", "match": {"field": "combo_nod_probate", "op": "eq", "value": true}, "points": 5, "reading": "Heirs facing a foreclosure clock they did not create.", "lever": "Estate counsel is the door."},
+        {"id": "both_pre_nod", "event_type": null, "signal": "combo_pre_nod_both", "match": {"field": "combo_pre_nod_both", "op": "eq", "value": true}, "points": 5, "reading": "Trustee substitution and OFAP certificate both recorded; NOD is imminent.", "lever": "Act this week."}
+      ],
+      "notes": "Assessor-derived facts (hold years, absentee, tax delinquency from the same roll) count once. Cap 20 after modifiers."
+    },
+    {
+      "name": "equity",
+      "weight": 20,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": true,
+      "cap": 20,
+      "bands": [
+        {"id": "eq_gt_50", "event_type": null, "signal": "equity_cushion_pct", "match": {"field": "equity_cushion_pct", "op": "gt", "value": 0.5}, "points": 20, "reading": "Owner can sell at a discount and still walk away whole.", "lever": "Convenience and certainty; no price in first touch."},
+        {"id": "eq_35_50", "event_type": null, "signal": "equity_cushion_pct", "match": {"field": "equity_cushion_pct", "op": "between", "value": [0.35, 0.5], "inclusive": true}, "points": 15, "reading": "Comfortable equity; a fair discount is possible.", "lever": "Net-sheet conversation."},
+        {"id": "eq_20_35", "event_type": null, "signal": "equity_cushion_pct", "match": {"field": "equity_cushion_pct", "op": "between", "value": [0.2, 0.35]}, "points": 10, "reading": "Enough equity to close but little room for a deep discount.", "lever": "Terms (speed, as-is) over price."},
+        {"id": "eq_10_20", "event_type": null, "signal": "equity_cushion_pct", "match": {"field": "equity_cushion_pct", "op": "between", "value": [0.1, 0.2]}, "points": 5, "reading": "Thin; closing costs consume most of it.", "lever": "Short-pay or lender-consent paths."},
+        {"id": "eq_lt_10", "event_type": null, "signal": "equity_cushion_pct", "match": {"field": "equity_cushion_pct", "op": "lt", "value": 0.1}, "points": 0, "reading": "Lender controls the economics.", "lever": "Route lender_counterparty if NOD present."}
+      ],
+      "modifiers": [],
+      "notes": "equity_cushion_pct = (RMV x neighborhood sales ratio - total liens incl. HECM, DOR deferral, judgments) / value. A stated sum owing on a Notice of Sale overrides the amortized estimate. Basis multiplier uses balance_basis."
+    },
+    {
+      "name": "owner_profile",
+      "weight": 15,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 15,
+      "bands": [
+        {"id": "estate_pr", "event_type": "PROBATE_FILED", "signal": "owner_type", "match": {"any": [{"field": "owner_type", "op": "eq", "value": "trust_estate"}, {"field": "event_present", "op": "eq", "value": "PROBATE_FILED"}]}, "points": 13, "reading": "Personal representative managing an asset nobody chose; liquidity needs.", "lever": "Simplicity; stepped-up basis removes the tax lock."},
+        {"id": "hecm", "event_type": "HECM_ON_RECORD", "signal": null, "match": {"field": "event_present", "op": "eq", "value": "HECM_ON_RECORD"}, "points": 10, "reading": "Elderly owner; loan due on death or move-out; heirs must act within months.", "lever": "Respectful, non-pressuring; coordinate with servicer timelines."},
+        {"id": "dor_deferral", "event_type": "DOR_DEFERRAL_LIEN", "signal": null, "match": {"field": "event_present", "op": "eq", "value": "DOR_DEFERRAL_LIEN"}, "points": 10, "reading": "Senior/disabled owner deferring taxes; deferred balance due at sale.", "lever": "Include deferral payoff in the net sheet; soft outreach only."},
+        {"id": "out_of_state", "event_type": "ABSENTEE_TIER", "signal": null, "match": {"field": "value", "op": "in", "value": ["out_of_state", "far"]}, "points": 10, "reading": "Remote owner of a local problem.", "lever": "Mail then DNC-scrubbed call; offer to handle everything."},
+        {"id": "in_state_nonmetro", "event_type": "ABSENTEE_TIER", "signal": null, "match": {"field": "value", "op": "eq", "value": "in_state"}, "points": 7, "reading": "Absentee within Oregon/Washington.", "lever": "Mail-first."},
+        {"id": "local_absentee", "event_type": "ABSENTEE_TIER", "signal": null, "match": {"field": "value", "op": "eq", "value": "local"}, "points": 4, "reading": "Local landlord or relative; weakest absentee tier.", "lever": "Never a standalone lead."},
+        {"id": "trust_owner", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "eq", "value": "trust_estate"}, "points": 6, "reading": "Estate-planning stage ownership; successor trustee may prefer liquidity.", "lever": "Trustee letter."},
+        {"id": "fed_cluster", "event_type": null, "signal": "fed_filings_12mo", "match": {"all": [{"field": "fed_filings_12mo", "op": "gte", "value": 2}, {"field": "units", "op": "between", "value": [2, 5]}]}, "points": 10, "reading": "Small landlord running repeat evictions under Portland's rules; fatigue.", "lever": "Regulatory-fatigue angle; buy with tenants in place."},
+        {"id": "dissolution", "event_type": "DISSOLUTION_FILED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "domestic_relations"}, "points": 6, "reading": "Divorce usually forces sale or buyout within a year.", "lever": "Neutral, both-parties certainty pitch."},
+        {"id": "occupant", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "eq", "value": "individual_occupant"}, "points": 2, "reading": "Owner lives there; motivation must come from another family.", "lever": "Only with a hard trigger."}
+      ],
+      "modifiers": []
+    },
+    {
+      "name": "condition_vacancy",
+      "weight": 10,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "bands": [
+        {"id": "dangerous_building", "event_type": "DANGEROUS_BUILDING", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 10, "reading": "City case with escalating monthly fees and lien exposure.", "lever": "As-is purchase ends the bleeding."},
+        {"id": "usps_vacant", "event_type": null, "signal": "usps_vacant", "match": {"field": "usps_vacant", "op": "eq", "value": true}, "points": 8, "reading": "No one receiving mail; carrying costs with no use.", "lever": "Vacancy is the opener."},
+        {"id": "housing_case", "event_type": "CODE_CASE_OPEN", "signal": null, "match": {"field": "detail", "op": "in", "value": ["housing", "maintenance", "derelict", "empty_home"]}, "points": 7, "reading": "Habitability case; owner cannot or will not fund repairs.", "lever": "Repair-cost framing."},
+        {"id": "no_stat_returned", "event_type": null, "signal": "returned_mail_or_no_stat", "match": {"field": "returned_mail_or_no_stat", "op": "eq", "value": true}, "points": 5, "reading": "Mail bouncing; likely vacant or owner moved.", "lever": "Skip trace to the new address."},
+        {"id": "nuisance", "event_type": "CODE_CASE_OPEN", "signal": null, "match": {"field": "detail", "op": "in", "value": ["nuisance", "zoning"]}, "points": 4, "reading": "Minor case; corroboration only.", "lever": "None alone."}
+      ],
+      "modifiers": []
+    },
+    {
+      "name": "tenure_basis_lock",
+      "weight": 10,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "bands": [
+        {"id": "tenure_20_or_ratio", "event_type": "HOLD_YEARS", "signal": "av_rmv_ratio", "match": {"any": [{"field": "hold_years", "op": "gt", "value": 20}, {"field": "av_rmv_ratio", "op": "lt", "value": 0.45}]}, "points": 10, "reading": "Pre-1997 holder or no exception events; likely older owner, little or no mortgage.", "lever": "Tax-strategy content (1031, installment, DST) and life-stage conversation."},
+        {"id": "tenure_10_20", "event_type": "HOLD_YEARS", "signal": null, "match": {"field": "value", "op": "between", "value": [10, 20], "inclusive": true}, "points": 7, "reading": "Long hold; substantial embedded gain.", "lever": "Quarterly nurture."},
+        {"id": "tenure_5_10", "event_type": "HOLD_YEARS", "signal": null, "match": {"field": "value", "op": "between", "value": [5, 10]}, "points": 4, "reading": "Mid hold.", "lever": "Needs another family."},
+        {"id": "tenure_lt_5", "event_type": "HOLD_YEARS", "signal": null, "match": {"field": "value", "op": "lt", "value": 5}, "points": 1, "reading": "Recent buyer; little basis lock.", "lever": "Check RECENT_1031_ACQUISITION penalty."}
+      ],
+      "modifiers": [],
+      "notes": "av_rmv_ratio = ROLLM50 / (ROLLLAND + ROLLIMP) on Oregon rolls. Raise the equity factor when no trust deed recorded in the last 10 years."
+    }
+  ],
+  "hard_filters": [
+    {"id": "active_listing", "condition": "on_market == true", "effect": "excluded"},
+    {"id": "rescission_or_reconveyance", "condition": "NOD_RESCISSION after NOD_RECORDED, or Reconveyance closing the only distress event", "effect": "remove HARD_DISTRESS event; re-score"},
+    {"id": "institutional_or_reo", "condition": "owner_type in [institutional, lender_reo_receiver]", "effect": "route lender_counterparty or excluded"},
+    {"id": "dnc_or_litigator", "condition": "phone channel only: DNC or litigator flag from licensed vendor", "effect": "remove phone channel; mail only"},
+    {"id": "active_bankruptcy", "event_type": "BANKRUPTCY_FILED", "condition": "case active", "effect": "compliance_gates += counsel_only"}
+  ],
+  "routes": [
+    {"id": "trustees_deed", "event_type": "TRUSTEES_DEED", "route": "lender_counterparty", "note": "owner lead closed; optional REO track"}
+  ],
+  "quality_rules": [
+    "Absentee tier, tenure and equity are never a standalone lead; require at least one HARD_DISTRESS, TAX_LIEN, OWNERSHIP (probate/HECM/DOR) or PHYSICAL event before tier B or above.",
+    "Equity uses RMV calibrated by sales ratio or an AVM; never Assessed Value in Measure-50 states."
+  ]
+}

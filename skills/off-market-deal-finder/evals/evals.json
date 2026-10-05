@@ -1,0 +1,54 @@
+{
+  "skill_name": "off-market-deal-finder",
+  "description": "Three end-to-end prompts, one per asset class, that exercise routing, geography resolution, declared date formats, basis labelling, scoring caps, decision-maker honesty and handoff payloads. Run with the skill loaded; grade against `expectations`. Near-miss negatives (underwrite this LIHTC deal; search LoopNet; extract the maturity date from this loan agreement; run comps on this fourplex) belong in the description-optimization set, not here.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build me a target list of affordable housing in Portland, Oregon with loans coming due within the next 5 years.",
+      "files": ["references/sample-output/run_config.example.json"],
+      "expected_output": "Routes to affordable_regulated (Step 0 rule b: 'affordable'). Asks whether 'Portland' means city_limits, Multnomah County or the tri-county metro_core, or states the metro_core default and why. Points `local_datasets` at the OHCS inventory CSV (/tmp/claude-0/-home-user/7bb5c89e-a260-588a-815c-3462cdc087de/scratchpad/d/Oregon_Affordable_Housing_Inventory_20261002.csv in the authoring session; any OAHI export otherwise) and runs scripts/run_pipeline.py or ohcs_inventory_targets.py -> query_calendar.py -> score_leads.py. Parses Financial_Closing_Date day-first (declared %d/%m/%Y; 222 of 298 values have a first field > 12) and every other slash column month-first. Labels Financial_Closing_Date + 15y mini-perm maturities PROXY (0.30, +/-36 months) and notes that proxy-only leads never exceed Tier C. Quotes the calendar header verbatim before any count (RECORDED n / REPORTED n / DERIVED n / ESTIMATED n / PROXY n / Suppressed n / Rejected n | helper deadlines n) and says the run is degraded (no RECORDED dates; which files would add them). Separates first_debt_event from first_reg_event and reports 'maturity hits: n with a dated DEBT event; n regulatory-only shown as secondary'. Every decision maker reads 'not in public record' with an SOS worklist, never an invented GP name. Writes handoff JSON for front-door-lihtc-underwriting, critical-dates-tracker (documents_to_request for every non-RECORDED event), legal-title-risk-assessment, deal-finder, comp-analyzer, forward-pipeline-and-news-intelligence, plus sos_worklist.csv and documents_to_request.csv.",
+      "expectations": [
+        "Routes to asset_class affordable_regulated and loads references/affordable-regulated.md, not the SFR or market-rate module.",
+        "Asks for or explicitly states geography_mode (city_limits 517/518 rows vs county 546 vs metro_core 810) and echoes the geography object with county FIPS.",
+        "Parses Financial_Closing_Date day-first with the declared format and does not re-guess row by row; a raw value like 26/01/2022 becomes 2022-01-26.",
+        "Every mini-perm maturity (closing date + 15y, 17y for 4% bond) carries basis PROXY and the brief states that proxy-only leads are capped at Tier C.",
+        "Quotes the basis breakdown header before the lead count and states Tier A is unreachable with the OHCS CSV alone, naming HUD FHASL Active, HUD MF Assistance & Sec 8 and the OHCS 10-Year Forecast.",
+        "Honours query_type maturity: reports how many leads have a dated DEBT event and shows regulatory-only leads as secondary rather than silently returning the 'all' list.",
+        "Names a GP, managing member or executive director only with two independent filings; otherwise writes 'not in public record' and produces the SOS worklist.",
+        "Routes nonprofit, housing-authority and ROFR-encumbered properties to partnership_preservation; compliance gates (preservation_law, dnc_scrub) appear on each card before contact fields.",
+        "Emits handoff payloads per sibling skill with the field maps in references/output-contract.md, including documents_to_request for every non-RECORDED event.",
+        "Uses date.today() or an explicit --as-of; no hardcoded date in the outputs."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Find 20-80 unit apartments in Multnomah County with debt maturing in the next 24 months and a refinance gap.",
+      "files": [],
+      "expected_output": "Routes to market_rate_mf (apartments, maturing, refinance). Sets geography_mode county (41051), horizon_years 2, query_type maturity, unit_range [20, 80] with the deal-size post-score multiplier (1.00 inside, 0.85 within 25% outside, 0.60 beyond; hard filter only with strict_size_fit). Before producing a list, states which tapes must be in the inbox: HUD FHASL Active/Terminated (RECORDED), Fannie DUS Disclose and Freddie MSIA exports (REPORTED), SEC EDGAR EX-102 via edgartools for conduit CMBS, and a recorder index export for bank/credit-union/life-co/debt-fund loans (ESTIMATED from recording date + lender-type term; buy the Multnomah image to make it RECORDED). Explains the refinance-gap test (max_loan = min of DSCR, debt-yield and LTV constraints at UST10 + spread; refi_gap_pct, dscr_refi, equity_cushion) with constants from market-params.json flagged verify, and that the capital-stack timing factor is multiplied by the basis of the governing maturity. Notes that Oregon commercial lenders foreclose judicially, so court filings and lis pendens matter more than NODs for this class. If no tape is supplied, says so and produces the download checklist instead of fabricating maturities.",
+      "expectations": [
+        "Routes to market_rate_mf and loads references/market-rate-multifamily.md.",
+        "Sets horizon_years 2 (debt-only) and query_type maturity; does not treat regulatory horizons as the question.",
+        "Applies unit_range 20-80 through the deal-size multiplier, not as a scored factor, and names strict_size_fit as the hard-filter option.",
+        "Lists the maturity tapes with their basis (HUD FHASL RECORDED; DUS/MSIA/EX-102 REPORTED; recorder + lender term ESTIMATED) and the coverage gap for bank/CU/life-co/debt-fund loans.",
+        "Describes the refinance-gap screen with formulas from references/capital-stack-math.md and flags UST10 as a verify placeholder.",
+        "Produces no lender, balance or maturity that is not in a supplied file; with an empty inbox it returns the checklist and run_config, not a list.",
+        "Mentions judicial foreclosure / receivership monitoring (ORS 88, ORS ch. 37) as the class-2 distress feed."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Pre-foreclosure and probate leads for duplexes in Clark County, WA.",
+      "files": [],
+      "expected_output": "Routes to sfr_small_res (duplex, pre-foreclosure, probate as whole words). Resolves geography to Clark County WA (FIPS 53011) and says OHCS and Metro RLIS stop at the state line, so the feeds are the Clark County Auditor recorded-document index (free images), Washington superior court probate records and the Clark assessor. States the Washington clock: no recorded Notice of Default; the Notice of Trustee's Sale (RCW 61.24.040(1)(a)) records at least 90 days before the sale (120 when an RCW 61.24.031 letter applied), cure runs to the eleventh day before the sale (RCW 61.24.090), continuances up to 120 days (RCW 61.24.040(10)), so NOTS_RECORDED and CURE_DEADLINE = sale - 11 days are the events, scored in the class-1 time-pressure factor at 22-25. Applies compliance gates: dnc_scrub (TCPA; National DNC registry) before any call or text, equity_purchaser_rules under RCW 61.34 (Distressed Property Conveyances Act) before any leaseback or 'we can help you avoid foreclosure' structure, probate_cooling of 60-120 days with letters to the personal representative or counsel, and wholesaler_registration only if buyer_profile is wholesaler (Oregon HB 4058 does not apply in Washington). Equity uses assessed market value with liens; individual skip tracing only for Tier A/B via a licensed vendor with DNC and litigator flags carried verbatim and no age or voter data.",
+      "expectations": [
+        "Routes to sfr_small_res and loads references/sfr-distress.md.",
+        "Resolves to Clark County WA 53011 and states which Oregon sources do not cover it.",
+        "Uses NOTS_RECORDED (not NOD_RECORDED) as the first recorded instrument and sets CURE_DEADLINE = sale - 11 days under RCW 61.24.090.",
+        "Lists dnc_scrub and the RCW 61.34 equity-purchaser gate before any contact field; applies the 60-120 day probate cooling period.",
+        "Does not apply Oregon-only rules (ORS 86 clock, Oregon rent cap, Portland relocation) to Washington leads.",
+        "Limits individual skip tracing to Tier A/B through a licensed vendor, carrying DNC/litigator flags verbatim and collecting no age or voter data.",
+        "Marks the Clark County Auditor and WA court URLs verified_live=false until smoke-tested."
+      ]
+    }
+  ]
+}

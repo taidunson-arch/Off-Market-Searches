@@ -1,0 +1,203 @@
+{
+  "_schema": "Mandate / product-eligibility file read by plb/mandate.py. A product qualifies when status in {open, rolling} AND (eligible_programs empty or intersects programs_list) AND owner_type not in ineligible_owner_types AND (eligible_owner_types empty or owner_type in it) AND units >= min_units (units, not units_at_risk) AND (application_window absent or as_of inside it). mandate_fit = eligible if any product qualifies; ineligible if products exist and none qualifies (mandate_ineligible_reason = first failing test per product); no_mandate_file when the pack has no mandate.json. Route-level hard filter on nofa_offer only: never an exclusion reason, never a multiplier. Every product is a placeholder with verified_live false until the agency pastes its own NOFA terms.",
+  "pack": "oregon-portland",
+  "as_of": "2026-10-04",
+  "agency_profile_defaults": {
+    "hfa": [
+      "ohcs_preservation_nofa",
+      "lihtc_4pct_gap",
+      "zero_pct_rehab_recap",
+      "usda_mpr"
+    ],
+    "city_housing": [
+      "phb_preservation_rfp",
+      "lihtc_4pct_gap",
+      "metro_bond_acquisition",
+      "noah_ohaf_bridge"
+    ],
+    "county": [
+      "metro_bond_acquisition",
+      "noah_ohaf_bridge"
+    ],
+    "pha_am": [
+      "lihtc_4pct_gap"
+    ],
+    "cdbg_home": [
+      "phb_preservation_rfp"
+    ]
+  },
+  "products": [
+    {
+      "product_id": "ohcs_preservation_nofa",
+      "name": "OHCS centralized Affordable Rental Housing NOFA \u2014 preservation (LIFT, OAHTC rate buy-down, GHAP, HOME, HTF, PSH bonds)",
+      "agency_owner": "nofa_program_manager",
+      "status": "rolling",
+      "eligible_programs": [
+        "LIHTC_9",
+        "LIHTC_4",
+        "HAP",
+        "PRAC",
+        "RAC",
+        "PAC",
+        "HUD_236",
+        "HUD_202_811",
+        "USDA_515",
+        "HOME",
+        "OAHTC",
+        "GHAP",
+        "HDGP",
+        "LIFT",
+        "HTF",
+        "OTHER_OHCS"
+      ],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": {
+        "opens": "2027-02-01",
+        "closes": "2027-05-31"
+      },
+      "new_covenant_years": 30,
+      "source": "OHCS 2025 Affordable Rental Housing NOFA (cohort Feb-May; first-come to applicants meeting mandatory requirements and a minimum score) \u2014 snippet; replace with the current NOFA",
+      "verified_live": false,
+      "note": "GHAP historically limited to nonprofit / PHA sponsors or for-profit with a nonprofit partner; encode as a separate product once the current NOFA is read"
+    },
+    {
+      "product_id": "lihtc_4pct_gap",
+      "name": "4% LIHTC with tax-exempt bonds plus OHCS gap (recapitalization / resyndication)",
+      "agency_owner": "nofa_program_manager",
+      "status": "rolling",
+      "eligible_programs": [
+        "LIHTC_9",
+        "LIHTC_4",
+        "HAP",
+        "PRAC",
+        "HUD_236",
+        "HUD_202_811",
+        "USDA_515",
+        "HOME",
+        "OAHTC",
+        "GHAP",
+        "HDGP",
+        "OTHER_OHCS"
+      ],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 30,
+      "source": "OHCS QAP / bond cap allocation policy (verify current year)",
+      "verified_live": false
+    },
+    {
+      "product_id": "zero_pct_rehab_recap",
+      "name": "0% recapitalization / rehabilitation loan (agency soft second; funds ROFR exercise, Year-15 recap, capital needs)",
+      "agency_owner": "am_officer",
+      "status": "open",
+      "eligible_programs": [],
+      "eligible_owner_types": [
+        "nonprofit",
+        "lihtc_partnership_nonprofit_gp",
+        "housing_authority",
+        "government"
+      ],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": 60000,
+      "application_window": null,
+      "new_covenant_years": 30,
+      "source": "agency product terms placeholder (recap_loan_rate 0.0 in market-params.json); no OHCS recast / subordination policy document was located \u2014 verify",
+      "verified_live": false
+    },
+    {
+      "product_id": "phb_preservation_rfp",
+      "name": "Portland Housing Bureau Affordable Housing Preservation RFP (CDBG, HOME, PCEF; LIHTC recap priority; 60-year City covenant)",
+      "agency_owner": "nofa_program_manager",
+      "status": "closed",
+      "eligible_programs": [
+        "LIHTC_9",
+        "LIHTC_4",
+        "HAP",
+        "PRAC",
+        "HOME",
+        "CDBG",
+        "HUD_236",
+        "HUD_202_811",
+        "PHB_LOAN",
+        "LOCAL_REG"
+      ],
+      "eligible_owner_types": [
+        "nonprofit",
+        "lihtc_partnership_nonprofit_gp",
+        "housing_authority"
+      ],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": {
+        "opens": "2025-03-19",
+        "closes": "2025-05-31"
+      },
+      "new_covenant_years": 60,
+      "source": "PHB Spring 2025 Preservation RFP: up to $6.7M CDBG, $4.5M HOME, $12M PCEF; transfers expiring properties to mission nonprofits under a 20-year HUD renewal plus the City's 60-year covenant \u2014 snippet; Portland city limits only; status closed until the next round is announced",
+      "verified_live": false
+    },
+    {
+      "product_id": "metro_bond_acquisition",
+      "name": "Metro affordable housing bond (Measure 26-199) acquisition / preservation funds via the three counties",
+      "agency_owner": "nofa_program_manager",
+      "status": "rolling",
+      "eligible_programs": [],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 60,
+      "source": "Metro Measure 26-199 (2018) $652.8M GO bonds; county allocations ~45% Multnomah / 34% Washington / 21% Clackamas; PHB local implementation strategy (amended March 2026) \u2014 snippet; acquisition-grant eligibility is the NOAH watch hard filter when enabled",
+      "verified_live": false,
+      "note": "acquisition_grant class product: enables the optional NOAH watch question for city_housing / county profiles"
+    },
+    {
+      "product_id": "noah_ohaf_bridge",
+      "name": "NOAH Oregon Housing Acquisition Fund bridge loan (external partner; bridges acquisitions while HAP renewals and permanent financing are assembled)",
+      "agency_owner": "nofa_program_manager",
+      "status": "rolling",
+      "eligible_programs": [],
+      "eligible_owner_types": [
+        "nonprofit",
+        "lihtc_partnership_nonprofit_gp",
+        "housing_authority",
+        "government"
+      ],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": null,
+      "source": "NOAH (Network for Oregon Affordable Housing) OHAF: 43 loans, 2,621 units preserved per NCSHA / OLIS testimony \u2014 snippet",
+      "verified_live": false,
+      "external": true
+    },
+    {
+      "product_id": "usda_mpr",
+      "name": "USDA Multifamily Preservation and Revitalization (external; RD restructures 515/514 debt for extended restrictive-use covenants)",
+      "agency_owner": "rd_state_office",
+      "status": "rolling",
+      "eligible_programs": [
+        "USDA_515"
+      ],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 1,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 20,
+      "source": "82 FR 2017-09500 (MPR demonstration) and RD program notices \u2014 snippet",
+      "verified_live": false,
+      "external": true
+    }
+  ]
+}

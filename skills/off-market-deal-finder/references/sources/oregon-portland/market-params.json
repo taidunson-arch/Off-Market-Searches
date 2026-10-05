@@ -1,0 +1,279 @@
+{
+  "_schema": "Market parameters for the oregon-portland pack. Every value carries value, as_of and source. Values marked verify must be re-pulled before a run that depends on them; verified_live false means the publisher's page was not fetched in this build. Dollar fees for recorders, courts and city services are stored ONLY here (never as bare facts elsewhere) and are snippet-derived. Refresh quarterly. Read by scripts/omdf/capital_stack.py, normalize_assessor_taxlots.py, make_handoffs.py and build_workbook.py (Assumptions tab).",
+  "market_id": "us-or-multnomah",
+  "pack_as_of": "2026-10-04",
+  "benchmarks_source": {
+    "value": "multifamily-benchmarks Quick Reference 2026-05",
+    "as_of": "2026-05-01",
+    "source": "sibling skill multifamily-benchmarks; surface this date in the Assumptions tab"
+  },
+  "cap_rate_market_avg": {
+    "value": 0.064,
+    "as_of": "2026-06-30",
+    "source": "Kidder Mathews Portland Multifamily Market Report Q2 2026 (transactional average, all classes; up from 5.9% a year earlier)",
+    "verified_live": false
+  },
+  "cap_rate_class_a": {
+    "value": 0.047,
+    "as_of": "2026-09-12",
+    "source": "ApartmentLoanStore Portland cap rates by class (lender marketing; indicative, tighter than observed transactional average)",
+    "verified_live": false
+  },
+  "cap_rate_class_b": {
+    "value": 0.051,
+    "as_of": "2026-09-12",
+    "source": "ApartmentLoanStore (indicative)",
+    "verified_live": false
+  },
+  "cap_rate_class_c": {
+    "value": 0.056,
+    "as_of": "2026-09-12",
+    "source": "ApartmentLoanStore (indicative); use 0.064 market average as base case for B/C",
+    "verified_live": false
+  },
+  "cap_rate_affordable": {
+    "value": 0.0675,
+    "as_of": "2026-10-04",
+    "source": "derived: Class C cap + 100 bp for as-restricted value; not a market observation",
+    "verify": true
+  },
+  "price_per_unit_avg": {
+    "value": 182489,
+    "as_of": "2026-06-30",
+    "source": "Kidder Mathews Q2 2026 average price per unit",
+    "verified_live": false,
+    "verify": true
+  },
+  "vacancy": {
+    "value": 0.071,
+    "as_of": "2026-06-30",
+    "source": "Kidder Mathews Q2 2026 vacancy (Multifamily NW Spring 2026 metro survey 5.47%; use Kidder for stabilized underwriting, MFNW for professionally managed stock)",
+    "verified_live": false
+  },
+  "vacancy_hap_units": {
+    "value": 0.03,
+    "as_of": "2026-10-04",
+    "source": "convention for HAP-assisted units",
+    "verify": true
+  },
+  "asking_rent_avg": {
+    "value": 1656,
+    "as_of": "2026-06-30",
+    "source": "Kidder Mathews Q2 2026 average asking rent per unit (flat YoY)",
+    "verified_live": false
+  },
+  "asking_rent_by_bedroom": {
+    "value": {
+      "studio": 1199,
+      "1br": 1408,
+      "2br": 1690,
+      "3br": 2325,
+      "4br": 3245
+    },
+    "as_of": "2026-08-31",
+    "source": "Zumper Portland rent research Aug 2026 (listing-based; apply 3-8% haircut for Class C in-place)",
+    "verified_live": false
+  },
+  "rentcafe_avg_rent": {
+    "value": 1708,
+    "as_of": "2026-06-30",
+    "source": "RentCafe / Yardi Matrix Portland June 2026 (50+ unit stock; -1.6% YoY)",
+    "verified_live": false
+  },
+  "class_c_inplace_haircut": {
+    "value": 0.05,
+    "as_of": "2026-10-04",
+    "source": "midpoint of 3-8% convention for asking-to-in-place on Class C",
+    "verify": true
+  },
+  "safmr_2br_examples": {
+    "value": {
+      "97205": 1800,
+      "97202": 2050,
+      "97062": 2090,
+      "97239": 2220,
+      "97140": 2420
+    },
+    "as_of": "2025-10-01",
+    "source": "HUD FY2026 Small Area FMRs, Portland-Vancouver-Hillsboro MSA (gross rents incl. utilities; conservative floor)",
+    "verified_live": false,
+    "verify": true
+  },
+  "opex_per_unit_market": {
+    "value": 9400,
+    "as_of": "2026-10-04",
+    "source": "IREM Income/Expense IQ 2023 Portland metro ~$8,637/unit inflated 3%/yr to 2026 (~$9,400); national 2023 $8,420",
+    "verify": true
+  },
+  "opex_per_unit_regulated": {
+    "value": 8700,
+    "as_of": "2026-10-04",
+    "source": "OHCS Affordable Housing Financial Report FY24 $8,198/unit inflated ~3%/yr; low-end bound for older Class C",
+    "verify": true
+  },
+  "opex_ratio_market": {
+    "value": 0.42,
+    "as_of": "2026-10-04",
+    "source": "IREM implied OER ~41%; Oregon property tax burden above average; replace tax line with actual when assessor record available",
+    "verify": true
+  },
+  "opex_ratio_affordable": {
+    "value": 0.5,
+    "as_of": "2026-10-04",
+    "source": "convention for regulated portfolio (compliance costs, lower payroll efficiency)",
+    "verify": true
+  },
+  "ust10": {
+    "value": 0.0415,
+    "as_of": "2026-10-04",
+    "source": "PLACEHOLDER 10-year US Treasury yield; pull the current value before any run",
+    "verify": true
+  },
+  "refi_spread_bp": {
+    "value": 175,
+    "as_of": "2026-10-04",
+    "source": "midpoint of 150-200 bp agency/bank spread convention over UST10",
+    "verify": true
+  },
+  "sofr": {
+    "value": 0.0385,
+    "as_of": "2026-10-04",
+    "source": "PLACEHOLDER term SOFR for floating-rate extension tests; pull current",
+    "verify": true
+  },
+  "bridge_margin_bp": {
+    "value": 375,
+    "as_of": "2026-10-04",
+    "source": "midpoint of SOFR+300-450 for 2021-22 vintage bridge loans",
+    "verify": true
+  },
+  "dscr_floor_market": {
+    "value": 1.25,
+    "as_of": "2026-05-01",
+    "source": "multifamily-benchmarks: agency DSCR 1.25x; CMBS 1.25-1.35x"
+  },
+  "dscr_floor_bank": {
+    "value": 1.2,
+    "as_of": "2026-05-01",
+    "source": "multifamily-benchmarks: bank 1.20-1.30x"
+  },
+  "dscr_floor_affordable": {
+    "value": 1.15,
+    "as_of": "2026-05-01",
+    "source": "sizing-lihtc-permanent-debt hard-debt convention (1.15x typical; mandatory soft debt vs residual receipts handled there)"
+  },
+  "debt_yield_floor": {
+    "value": 0.08,
+    "as_of": "2026-05-01",
+    "source": "multifamily-benchmarks: agency debt yield 8-9%"
+  },
+  "ltv_max_market": {
+    "value": 0.7,
+    "as_of": "2026-05-01",
+    "source": "multifamily-benchmarks: effective LTV ~65-70%"
+  },
+  "ltv_max_affordable": {
+    "value": 0.8,
+    "as_of": "2026-05-01",
+    "source": "sizing-lihtc-permanent-debt convention"
+  },
+  "extension_test_dscr_min": {
+    "value": 1.15,
+    "as_of": "2026-10-04",
+    "source": "midpoint of 1.10-1.20 bridge extension DSCR tests",
+    "verify": true
+  },
+  "extension_test_debt_yield_min": {
+    "value": 0.075,
+    "as_of": "2026-10-04",
+    "source": "midpoint of 7-8% bridge extension debt-yield tests",
+    "verify": true
+  },
+  "io_roll_dscr_flag": {
+    "value": 1.35,
+    "as_of": "2026-10-04",
+    "source": "flag threshold for amortizing DSCR when IO ends within 12 months; score below 1.20"
+  },
+  "rent_cap_2026": {
+    "value": 0.095,
+    "as_of": "2025-09-30",
+    "source": "Oregon OEA rent stabilization: 2026 maximum 9.5% (lesser of 10% or 7% + CPI, ORS 90.324 as amended by SB 611); 6% for manufactured-dwelling parks > 30 spaces (HB 3054); buildings < 15 years from first CO exempt",
+    "verified_live": false,
+    "verify": true
+  },
+  "relocation_assistance_portland": {
+    "value": {
+      "studio": 2900,
+      "1br": 3300,
+      "2br": 4200,
+      "3br_plus": 4500
+    },
+    "as_of": "2026-10-04",
+    "source": "PCC 30.01.085 (PHB Rental Services Office); triggered by no-cause termination or a 10%+ rent increase within 12 months when the tenant elects to move; verify current amounts",
+    "verified_live": false,
+    "verify": true
+  },
+  "schedule_r_fee_per_unit": {
+    "value": 70,
+    "as_of": "2025-12-31",
+    "source": "Portland Residential Rental Registration LIC-5.09 TY2025 (cost line only; filer data is confidential under ORS 314.835)",
+    "verified_live": false,
+    "verify": true
+  },
+  "conduits_lien_search_fee": {
+    "value": 33,
+    "as_of": "2026-10-04",
+    "source": "City of Portland lien search via Conduits / Net Assets, per property",
+    "verified_live": false,
+    "verify": true
+  },
+  "multco_recorder_image_fee": {
+    "value": 3.75,
+    "as_of": "2026-10-04",
+    "source": "Multnomah County DART non-certified document copy, emailed or downloaded",
+    "verified_live": false,
+    "verify": true
+  },
+  "ojcin_setup_fee": {
+    "value": 170,
+    "as_of": "2026-10-04",
+    "source": "OJD OJCIN OnLine non-refundable setup; monthly base varies by account type (not visible); optional $27/month standard report package",
+    "verified_live": false,
+    "verify": true
+  },
+  "depreciation_recovery_years_residential": {
+    "value": 27.5,
+    "as_of": "2026-10-04",
+    "source": "IRS Publication 527 MACRS residential rental"
+  },
+  "av_is_market": {
+    "value": false,
+    "as_of": "2026-10-04",
+    "source": "Oregon Measure 50: Assessed Value = lesser of MAV (3%/yr growth from 1995-96 base x 0.90) and RMV; AV commonly ~50-55% of market in Multnomah; never use AV for value, equity or LTV; RMV only as a +/-25% sanity band"
+  },
+  "rmv_sanity_band": {
+    "value": 0.25,
+    "as_of": "2026-10-04",
+    "source": "convention"
+  },
+  "lender_type_prior": {
+    "value": {
+      "fannie_dus_freddie_k_sb": 0.56,
+      "bank_cu": 0.16,
+      "hud_fha": 0.1,
+      "debt_fund_bridge": 0.06,
+      "life_co": 0.06,
+      "cmbs": 0.02,
+      "other": 0.04
+    },
+    "as_of": "2026-10-04",
+    "source": "Yardi Matrix national multifamily lender mix (prior for inferring lender type from a recorder record when the grantee is unknown)",
+    "verified_live": false
+  },
+  "rmv_sales_ratio": {
+    "value": 1.0,
+    "as_of": "2026-10-04",
+    "source": "neighborhood median of arm's-length SALE_PRICE / prior-year RMV; 1.0 placeholder until computed from the assessor export (normalize_assessor_taxlots.py uses it for est_value = RMV x ratio)",
+    "verify": true
+  }
+}

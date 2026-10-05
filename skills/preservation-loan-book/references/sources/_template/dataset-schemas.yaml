@@ -1,0 +1,197 @@
+# Dataset schemas for the <st>-<metro> pack (preservation-loan-book).
+# Parsed by scripts/plb/schema.py. Declare EVERY date column of every file-drop dataset with an explicit strptime format
+# and a basis; a date-like column without a declared format stops the adapter with "No Format Declared". Run
+# `python3 scripts/date_profile.py <file>` to get a proposed YAML snippet, then paste and review it. Use `format: auto`
+# only when a column genuinely mixes formats; rows with both fields <= 12 then get "Verify — Ambiguous".
+#
+# Keys used by the adapters:
+#   match_columns      columns whose presence identifies this dataset (used to auto-detect inbox files)
+#   match_any          list of {any: [...]} groups; a block matches when every match_columns entry and at least one
+#                      column of every group are present (used by agency_servicing_extract)
+#   encoding           utf-8-sig when the file carries a BOM
+#   key                columns that identify a property across releases (never row order)
+#   dates.<col>        {format, basis, event?, program?, program_from?, confidence?, recompute_if_blank?, stale_if_past?, when_kind?, when?}
+#   derived_events     {EVENT: {from, add_years, add_years_if_program?, basis, window_months, derivation?, opt_in_flag?, require_programs?}}
+#   push               windows_months_before_anchor, due_dates, min_units, require_programs (consumed by plb/agency_calendar.py)
+#   validations        rules: month_le_12 | latest_equals_max_components | expiration_ge_compliance_start |
+#                      compliance_start_within_months_after_closing | custom
+#   normalize          per-column cleanup (title_case, typo_map, map, blank, drop_values)
+#   numeric            int_columns / float_columns (thousands separators stripped)
+#   enums              per-column allowed values (unknown -> Rejected — Out of Range)
+#   required_by_kind   agency_servicing_extract row validation by book_kind
+#   lead_columns       source column -> lead column map (units_at_risk inputs, flags)
+#   vulnerability_flags  property-type tokens -> elderly / disabled / veteran / sro
+#   filters            exclude: {column: [values]}
+#   county_fips        county name -> FIPS for county_field geo resolution
+#   pii                never / internal_only columns
+#   soa_affordable_codes  (HUD FHASL) Section-of-the-Act tokens that mark affordable programs
+
+agency_servicing_extract:
+  # Copy the oregon-portland block verbatim; the canonical columns are market-neutral (references/servicing-extract.md).
+  # Change only `dates.<col>.format` after profiling the agency's export and the `enums.program` list if the state adds programs
+  # (extend the program enum in references/pipeline-contract.md first, never here alone).
+  match_columns: ["book_kind", "program"]
+  match_any:
+    - {any: ["agency_loan_id", "grant_id", "asset_id", "contract_id"]}
+    - {any: ["maturity", "affordability_end", "recapture_end", "contract_expiration"]}
+    - {any: ["<hfa_property_key>", "parcel_id", "address", "property_id"]}
+  encoding: utf-8-sig
+  key: ["book_kind", "agency_loan_id", "grant_id", "asset_id", "contract_id"]
+  verified_live: false
+  source_id: agency_servicing
+  default_basis: RECORDED
+  required_by_kind:
+    loan: ["agency_loan_id", "upb", "maturity"]
+    grant: ["grant_id", {any: ["affordability_end", "recapture_end"]}]
+    owned_asset: ["asset_id", "units_assisted", {any: ["affordability_end", "contract_expiration"]}]
+    administered_contract: ["contract_id", "contract_expiration", "units_assisted"]
+  dates:
+    origination_date:                 {format: "<iso or profiled>", basis: RECORDED}
+    maturity:                         {format: "<fmt>", basis: RECORDED, event: AGENCY_LOAN_MATURITY, when_kind: [loan]}
+    affordability_end:                {format: "<fmt>", basis: RECORDED, event: AFFORDABILITY_PERIOD_END, program_from: program}
+    contract_expiration:              {format: "<fmt>", basis: RECORDED, event: HAP_EXPIRATION, confidence: 0.90, when_kind: [administered_contract], program_from: program}
+    recapture_start:                  {format: "<fmt>", basis: RECORDED}
+    recapture_end:                    {format: "<fmt>", basis: RECORDED, event: GRANT_RECAPTURE_END}
+    senior_maturity:                  {format: "<fmt>", basis: REPORTED, event: LOAN_MATURITY, detail_from: senior_lien_type, detail_prefix: "lender_type="}
+    notice_received_date:             {format: "<fmt>", basis: RECORDED, event: PRESERVATION_NOTICE_RECEIVED, when: "notice_log_status == received", detail_from: notice_detail, needs_anchor_when_blank: true}
+    qc_request_date:                  {format: "<fmt>", basis: RECORDED}
+    qc_request_complete_date:         {format: "<fmt>", basis: RECORDED, event: QC_ELIGIBILITY, status: requested, when: "qc_waived != true"}
+    third_party_offer_mailed_date:    {format: "<fmt>", basis: RECORDED, event: THIRD_PARTY_OFFER_RECEIVED}
+    third_party_offer_received_date:  {format: "<fmt>", basis: RECORDED}
+    qp_offer_delivered_date:          {format: "<fmt>", basis: RECORDED}   # qualified purchaser's offer delivered -> ROFR_RECORDABLE_DATE (+30 d, ORS 456.262, verify)
+    usda_prepay_request_date:         {format: "<fmt>", basis: RECORDED, event: USDA_PREPAY_REQUEST_RECEIVED}
+    rad_chap_date:                    {format: "<fmt>", basis: RECORDED, event: RAD_CHAP}
+    section_18_application_date:      {format: "<fmt>", basis: RECORDED, event: SECTION_18_APPLICATION}
+    last_inspection_date:             {format: "<fmt>", basis: RECORDED}
+    last_8823_date:                   {format: "<fmt>", basis: RECORDED, event: NONCOMPLIANCE_FINDING, detail: "8823_filed"}
+    last_reac_date:                   {format: "<fmt>", basis: RECORDED}
+    as_of:                            {format: "<fmt>", basis: RECORDED}
+  derived_events:
+    COVENANT_DEFAULT:          {when: "covenant_status == default", date: as_of, basis: RECORDED}
+    SHARED_APPRECIATION_DUE:   {when: "shared_appreciation_pct > 0", from: maturity, basis: RECORDED}
+    QC_REQUEST_INELIGIBLE:     {when: "qc_waived == true and (qc_request_date or qc_request_complete_date)", date: qc_request_date, basis: RECORDED}
+    NONCOMPLIANCE_FINDING:     {when: "open_findings_count > 0", date: as_of, basis: RECORDED, detail: "open_finding", value_from: open_findings_count}
+    REAC_SCORE:                {when: "last_reac_score present", date: last_reac_date, basis: RECORDED, value_from: last_reac_score}
+  numeric:
+    float_columns: ["upb", "accrued_interest", "rate", "recapture_amount", "shared_appreciation_pct", "senior_upb"]
+    int_columns: ["units_assisted", "open_findings_count", "last_reac_score", "lien_position"]
+  enums:
+    book_kind: [loan, grant, owned_asset, administered_contract]
+    program: [LIHTC_9, LIHTC_4, HAP, PRAC, RAC, PAC, PBV, HUD_INSURED, HUD_236, HUD_202_811, USDA_515, HOME, CDBG, OAHTC, GHAP, HDGP, LIFT, HTF, OTHER_OHCS, LOCAL_REG, PHB_LOAN, TIF, LEVY, IH_SET_ASIDE]
+    rate_type: [fixed, variable]
+    payment_type: [hard_pay, residual_receipts, deferred, forgivable]
+    recapture_type: [home_recapture, home_resale, home_rental_repayment, cdbg, shared_appreciation, none]   # home_recapture / home_resale = homebuyer (92.254); rental HOME = home_rental_repayment (92.503(b))
+    recapture_method: [full, prorata_reducing, forgiveness_schedule, cdbg_fmv_share, none]
+    covenant_status: [current, watch, default, cured, released]
+    senior_lien_type: [hud_fha, usda_rd, fannie_dus, freddie_k_sb, bank_cu, state_soft, local_soft, none, unknown]
+    notice_log_status: [received, not_received_confirmed, unknown]
+    notice_detail: [push_first, push_second, hap_optout]
+    tenant_notice_status: [confirmed, not_confirmed, unknown, "n/a_pre_operative"]
+    hap_renewal_request_status: [received, not_received, unknown]
+    hap_renewal_option: ["1a", "1b", "2", "3", "4", "5", "6_optout", unknown]
+    qc_waived: ["true", "false", unknown]
+    recap_status: [none, announced, under_application, closed]
+    notice_address_source: [regulatory_agreement, hap_contract, loan_docs, sos_registered_agent, unknown]
+    basis: [RECORDED, REPORTED, DERIVED, ESTIMATED, PROXY]
+  pii:
+    never: []
+    internal_only: ["am_officer_email"]
+  book_join:
+    crosswalk_file: book_crosswalk.csv
+    fuzzy_ratio_min: 0.92
+    phase_tokens: ["I", "II", "III", "IV", "A", "B", "C", "1", "2", "3", "Phase"]
+
+<state>_hfa_inventory:
+  match_columns: ["<unique column 1>", "<unique column 2>"]
+  encoding: utf-8-sig
+  key: ["<Property Name column>", "<Address column>"]
+  verified_live: false
+  dates:
+    <closing_date_column>:            {format: "<%m/%d/%Y or %d/%m/%Y as profiled>", basis: REPORTED}
+    <compliance_start_column>:        {format: "<fmt>", basis: REPORTED}
+    <lihtc_extended_use_end_column>:  {format: "<fmt>", basis: REPORTED, event: LIHTC_EXTENDED_USE_END, program: LIHTC_9}
+    <soft_program_end_column>:        {format: "<fmt>", basis: REPORTED, event: SOFT_PROGRAM_END, program: HOME}
+    <hap_expiration_column>:          {format: "<fmt>", basis: REPORTED, event: HAP_EXPIRATION, confidence: 0.70, program_from: "<contract type column>", program_map: hud_contract_to_program, detail: term_unknown_annual_assumed, stale_if_past: true}
+    <usda_maturity_column>:           {format: "<fmt>", basis: REPORTED, event: USDA_515_MATURITY}
+    <latest_end_column>:              {format: "<fmt>", basis: REPORTED, event: REGULATORY_LATEST_END, recompute_if_blank: max_of_components}
+  derived_events:
+    LIHTC_COMPLIANCE_END:        {from: <compliance_start_column>, add_years: 15, basis: DERIVED, window_months: 12, require_programs: [LIHTC_4, LIHTC_9]}
+    LOAN_MATURITY:               {from: <closing_date_column>, add_years: 15, add_years_if_program: {LIHTC_4: 17}, basis: PROXY, window_months: 36, opt_in_flag: include_proxies, derivation: "<closing date> + 15y mini-perm (17y 4% bond); opt-in only"}
+  push:
+    # from federal/preservation-notice-laws-by-state.md for this state; empty windows disable PuSH-style derivations
+    windows_months_before_anchor: [[<first_max>, <first_min>], [<second_max>, <second_min>]]
+    due_dates: {PUSH_WINDOW_PREP: <first_max>, PUSH_FIRST_NOTICE_DUE: <first_min>, PUSH_SECOND_NOTICE_DUE: <second_min>}
+    min_units: <n>
+    require_programs: push_covered
+    anchor_rule: withdrawal_anchor_date
+  validations:
+    - {rule: month_le_12, on_fail: "Rejected — Out of Range"}
+    - {rule: latest_equals_max_components, whitelist: [], on_fail: "Verify — Conflicting Sources"}
+    - {rule: expiration_ge_compliance_start, when_both_present: true, on_fail: "Verify — Conflicting Sources"}
+    - {rule: compliance_start_within_months_after_closing, months: 36, when_both_present: true, on_fail: "Verify — Conflicting Sources"}
+  normalize:
+    <County column>: title_case
+    <City column>: {title_case: true, typo_map: {}}
+    <Owner Type column>: {title_case: true, map: {}, blank: infer_from_owner_name}
+    <Property Type column>: {drop_values: []}
+  numeric:
+    int_columns: ["<Total Units column>", "<Market Rate Units column>", "<Rental Assistance Count column>", "<PSH units column>", "<3BR column>", "<4BR+ column>"]
+  lead_columns:
+    <PSH units column>: psh_units_at_risk
+    <HFA funded flag column>: ohcs_funded          # keep the lead column name; it is the hfa expected_book_flag
+    <Rental Assistance Count column>: rental_assistance_units
+    <Market Rate Units column>: market_rate_units
+    <Total Units column>: units
+    <3BR column>: family_3br_units
+    <4BR+ column>: family_4plus_br_units
+    <Property Type column>: property_type
+  vulnerability_flags:
+    elderly: ["<elderly property-type values>"]
+    disabled: ["<disabled values>"]
+    veteran: ["<veteran values>"]
+    sro: ["<SRO values>"]
+  filters:
+    exclude: {<Status column>: ["<in-development value>"]}
+  value_proxy: {fallback: none, rent_limits_file: rent-limits.json}
+  county_fips: {<County A>: "<FIPS>", <County B>: "<FIPS>"}
+
+hud_fhasl_active:
+  match_columns: ["HUD Project Number", "Maturity Date", "Section of the Act"]
+  verified_live: false
+  dates: {"Initial Endorsement Date": {format: excel_date}, "Final Endorsement Date": {format: excel_date}, "Maturity Date": {format: excel_date, basis: RECORDED, event: LOAN_MATURITY}}
+  derived_events: {PREPAY_WINDOW_OPEN: {from: "Final Endorsement Date", add_years: 10, basis: DERIVED, window_months: 6}}
+  soa_affordable_codes: ["236", "221(d)(3)", "202", "811", "542"]
+  lead_columns: {senior_lien_type: hud_fha, "Amortized UPB": senior_upb, "Maturity Date": senior_maturity}
+
+hud_mf_assistance_sec8:
+  match_columns: ["property_id", "tracs_overall_expiration_date"]
+  verified_live: false
+  dates: {tracs_effective_date: {format: excel_date}, tracs_overall_expiration_date: {format: excel_date, basis: REPORTED, event: HAP_EXPIRATION, confidence: 0.70, overrides: <state>_hfa_inventory.<hap_expiration_column>, stale_if_past: true}}
+  lead_columns: {assisted_units_count: hap_units_at_risk, is_hud_administered: pbca_flag, owner_organization_name: owner_name, mgmt_agent_org_name: manager_name}
+  optional_columns: ["hap_renewal_request_status", "hap_renewal_option"]
+  pii: {never: ["owner_main_phone_number_text", "owner_phone", "owner_email"]}
+
+hud_reac_scores:
+  match_columns: ["property_id", "inspection_score", "inspection_date"]
+  verified_live: false
+  dates: {inspection_date: {format: excel_date, basis: REPORTED, event: REAC_SCORE, value_from: inspection_score, detail_from: inspection_protocol}}
+  numeric: {int_columns: ["inspection_score"]}
+
+state_preservation_forecast:
+  # normalize_ohcs_forecast.py pattern for a state HFA expiring-use list; map the agency's status vocabulary here
+  match_columns: ["<Property Name column>", "<Preservation Status column>"]
+  verified_live: false
+  key: ["<Property Name column>", "<Address column>"]
+  dates: {"<Expiration Date column>": {format: "<fmt>", basis: REPORTED, event: REGULATORY_LATEST_END}, "<Notice Date column>": {format: "<fmt>", basis: RECORDED, event: PRESERVATION_NOTICE_RECEIVED}}
+  status_map: {notice_received: [], first_notice: [], second_notice: [], hap_optout: [], at_risk: [], preserved: []}
+  lead_columns: {notice_status: notice_status, preservation_status: recap_status_hint}
+  kpi_flags: [notice_filed, hap_renewed, preserved]
+  signals: {on_state_expiring_list: true}
+
+noah_candidates:
+  # Optional NOAH watch input (references/noah-watch.md); manual CSV; only read with --noah-watch.
+  match_columns: ["property_name", "address", "units", "est_rent"]
+  verified_live: false
+  dates: {maturity: {format: iso, basis: REPORTED, event: LOAN_MATURITY}}
+  numeric: {int_columns: ["units", "year_built", "hold_years", "tax_delinquent_years", "code_cases_open"], float_columns: ["est_rent"]}
+  derived: {HOLD_YEARS: {from: hold_years, basis: RECORDED}, TAX_DELINQUENT_YEARS: {from: tax_delinquent_years, basis: RECORDED}, rent_to_fmr_ratio: "est_rent / safmr[zip][bedroom]"}
