@@ -254,7 +254,7 @@ def merge(lead_frames: List[pd.DataFrame], event_frames: List[pd.DataFrame], as_
     # ---- events: dedupe same (property, type, program, detail); keep best basis, record alternates; drop PROXY when RECORDED ours exists
     if len(events):
         events = events.astype(object)
-        for c in ("program", "detail", "source", "event_family"):
+        for c in ("program", "detail", "source", "event_family", "instrument_id"):
             if c not in events.columns:
                 events[c] = ""
             events[c] = events[c].fillna("")
@@ -271,7 +271,7 @@ def merge(lead_frames: List[pd.DataFrame], event_frames: List[pd.DataFrame], as_
         exempt = (events["event_family"] == "AGENCY_DEADLINE") | (events["event_type"] == "PRESERVATION_NOTICE_WINDOW") | (events["source"].astype(str) == "agency_servicing")
         keep = [r for r in events[exempt].to_dict(orient="records")]
         conflicts: List[Dict[str, Any]] = []
-        for (pid, et, prog, det), grp in events[~exempt].groupby(["property_id", "event_type", "program", "detail"], sort=False):
+        for (pid, iid, et, prog, det), grp in events[~exempt].groupby(["property_id", "instrument_id", "event_type", "program", "detail"], sort=False):
             best = grp.iloc[0].to_dict()
             others = grp.iloc[1:]
             alts = sorted({str(d) for d in grp["event_date"].tolist() if str(d) and str(d) != str(best["event_date"])})

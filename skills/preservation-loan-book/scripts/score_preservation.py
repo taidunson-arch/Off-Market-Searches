@@ -190,10 +190,10 @@ def agency_calendar_rows(scored: pd.DataFrame, events: pd.DataFrame, as_of) -> p
         d = parse_iso(e.get("event_date"))
         mo = months_between(as_of, d) if d else None
         meta = AGENCY_DEADLINE_META.get(e["event_type"], {})
-        rows.append({"property_id": e["property_id"], "property_name": names.get(str(e["property_id"]), ""), "agency_action_type": e["event_type"], "due_date": e.get("event_date"),
+        rows.append({"event_id": e.get("event_id", ""), "instrument_id": e.get("instrument_id", ""), "property_id": e["property_id"], "property_name": names.get(str(e["property_id"]), ""), "agency_action_type": e["event_type"], "due_date": e.get("event_date"),
                      "months_out": mo, "urgency": urgency_band(mo), "basis": e.get("basis"), "derived_from": e.get("derivation"), "agency_owner": meta.get("agency_owner", ""),
                      "statutory_cite": (meta.get("statutory_cite", "") + " (verify)") if meta.get("statutory_cite") else "", "status": e.get("status")})
-    df = pd.DataFrame(rows, columns=["property_id", "property_name", "agency_action_type", "due_date", "months_out", "urgency", "basis", "derived_from", "agency_owner", "statutory_cite", "status"])
+    df = pd.DataFrame(rows, columns=["event_id", "instrument_id", "property_id", "property_name", "agency_action_type", "due_date", "months_out", "urgency", "basis", "derived_from", "agency_owner", "statutory_cite", "status"])
     return df.sort_values(["due_date", "property_name"]).reset_index(drop=True) if len(df) else df
 
 

@@ -126,7 +126,7 @@ def run(a) -> Dict[str, Any]:
         if not addr and not _s(r.get("property_id")):
             pid = G.property_id("OR", None, None, f"{name} {city}", zipc)
         ids = {k: _s(r.get(k)) for k in ("agency_loan_id", "grant_id", "asset_id", "contract_id")}
-        id_kind = next((k for k in ("agency_loan_id", "grant_id", "asset_id", "contract_id") if ids[k]), "agency_loan_id")
+        id_kind = {"loan": "agency_loan_id", "grant": "grant_id", "owned_asset": "asset_id", "administered_contract": "contract_id"}[kind]
         idtag = f"{id_kind}={ids[id_kind]}"
         basis = _s(r.get("basis")).upper() or "RECORDED"
         program = _s(r.get("program"))
@@ -197,6 +197,9 @@ def run(a) -> Dict[str, Any]:
                program="HUD_INSURED" if _s(r.get("senior_lien_type")) == "hud_fha" else "")
         # agency deadlines from ledger columns
         evs.extend(deadlines_from_servicing_row(pid, r, as_of, params, units_assisted, [program] if program else []))
+        for event in evs:
+            event["instrument_id"] = f"{kind}:{ids[id_kind]}"
+            event["event_id"] = f"{kind}:{ids[id_kind]}:{event['event_id']}"
 
         owner = _s(r.get("owner_name"))
         self_owned = kind == "owned_asset" or is_self_owned(owner, prof.get("self_owner_tokens"), None)
@@ -234,6 +237,8 @@ def run(a) -> Dict[str, Any]:
                      "recap_evidence_basis": "RECORDED" if _s(r.get("recap_status")) else "", "coterminous_with": _s(r.get("coterminous_with"))})
         if a.internal:
             lead["am_officer_email"] = _s(r.get("am_officer_email"))
+        for field in ("origination_date", "contract_expiration", "lien_position", "rate_type", "accrued_interest"):
+            lead[field] = D.iso(dates.get(field)) if field in ("origination_date", "contract_expiration") else _s(r.get(field))
         fd, fr, inh = A.first_events(evs, hz, hz)
         A.apply_first(lead, fd, fr, inh)
         leads.append(lead)

@@ -69,6 +69,12 @@ def test_hfa_operations_snapshot_and_independent_reconciliation():
         assert db.execute("SELECT count(*) FROM instruments").fetchone()[0] >= 10
         assert db.execute("SELECT count(*) FROM cases").fetchone()[0] > 0
         assert db.execute("SELECT count(*) FROM covenants").fetchone()[0] == db.execute("SELECT count(*) FROM instruments").fetchone()[0]
+        graph = json.load(open(os.path.join(r["dir"], "book_model.json"), encoding="utf-8"))
+        assert graph["schema_version"] == 2
+        for entity in ("instruments", "covenants", "events", "evidence", "event_evidence", "actions", "action_events"):
+            assert db.execute(f"SELECT count(*) FROM model_{entity}").fetchone()[0] == len(graph[entity])
+        assert db.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert all(e["instrument_id"] for e in graph["events"] if e["source_event_id"].startswith(("loan:", "grant:", "owned_asset:", "administered_contract:")))
     finally:
         db.close()
     # Independent source tape count, not a count copied from generated output.
