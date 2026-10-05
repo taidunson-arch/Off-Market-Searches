@@ -851,6 +851,8 @@ def execute(argv, run_dir, run_id):
         rows = [{k: json.dumps(v, sort_keys=True) if isinstance(v, (dict, list)) else v for k, v in row.items()} for row in graph[entity]]
         pd.DataFrame(rows).to_csv(os.path.join(run_dir, f"model_{entity}.csv"), index=False)
     risk_rows = json.load(open(os.path.join(run_dir, "risk_dimensions.json"), encoding="utf-8"))
+    from plb.validation import rule_inventory
+    atomic_json(os.path.join(run_dir, "rule_inventory.json"), rule_inventory(run_dir, dict(cfg, pack=pack)))
     # ---- result JSON, manifest, checkpoint
     if os.path.exists(os.path.join(run_dir, "leads_scored.csv")):
         rp = write_result_json(run_dir, cfg, as_of, prof, sources_used, manifest, pack)

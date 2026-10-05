@@ -1,0 +1,56 @@
+{
+  "agency": "",
+  "jurisdiction": "",
+  "as_of": "YYYY-MM-DD",
+  "data_kind": "NOT_SUPPLIED",
+  "controls_csv": "controls.csv",
+  "decisions_csv": "decisions.csv",
+  "rule_reviews_csv": "rule_reviews.csv",
+  "control_source": "",
+  "control_reviewer": "",
+  "control_evidence_ref": "",
+  "sampling_design": "",
+  "sampling_evidence_ref": "",
+  "blind_review": false,
+  "blind_review_evidence_ref": "",
+  "evaluation_split": "",
+  "tolerance_cents": 0,
+  "acceptance_criteria": {
+    "version": "",
+    "reviewer": "",
+    "evidence_ref": "",
+    "frozen_on": "YYYY-MM-DD",
+    "preservation_urgency": {
+      "minimum_reviewed": null,
+      "minimum_positive": null,
+      "minimum_negative": null,
+      "maximum_missed_risk_rate": null,
+      "maximum_false_alarm_rate": null,
+      "maximum_abstention_rate": null
+    },
+    "financial_risk": {
+      "minimum_reviewed": null,
+      "minimum_positive": null,
+      "minimum_negative": null,
+      "maximum_missed_risk_rate": null,
+      "maximum_false_alarm_rate": null,
+      "maximum_abstention_rate": null
+    },
+    "data_confidence": {
+      "minimum_reviewed": null,
+      "minimum_positive": null,
+      "minimum_negative": null,
+      "maximum_missed_risk_rate": null,
+      "maximum_false_alarm_rate": null,
+      "maximum_abstention_rate": null
+    },
+    "intervention_readiness": {
+      "minimum_reviewed": null,
+      "minimum_positive": null,
+      "minimum_negative": null,
+      "maximum_missed_risk_rate": null,
+      "maximum_false_alarm_rate": null,
+      "maximum_abstention_rate": null
+    }
+  }
+}

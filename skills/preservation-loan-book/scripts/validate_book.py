@@ -2,6 +2,8 @@
 """Reconcile a generated HFA run against independent agency control totals and adjudicated cases."""
 import argparse
 import json
+import os
+import tempfile
 from pathlib import Path
 import pandas as pd
 
@@ -41,13 +43,46 @@ def reconcile(run_dir, controls):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run-dir",required=True)
-    ap.add_argument("--controls",required=True)
+    mode=ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--controls", help="Legacy aggregate checks only; not real-agency acceptance")
+    mode.add_argument("--package", help="Independent ledger, rule-review and adjudication package JSON")
     ap.add_argument("--out",required=True)
     a=ap.parse_args()
-    report=reconcile(a.run_dir,json.loads(Path(a.controls).read_text(encoding="utf-8")))
-    Path(a.out).write_text(json.dumps(report,indent=2),encoding="utf-8")
-    print("PASS" if report["passed"] else "FAIL")
-    raise SystemExit(0 if report["passed"] else 1)
+    exit_code = 1
+    try:
+        if a.package:
+            from plb.validation import validate_package
+            report=validate_package(a.run_dir,a.package)
+            passed=report["acceptance_status"] == "READY_FOR_AGENCY_SIGNOFF"
+            status=report["acceptance_status"]
+        else:
+            report=reconcile(a.run_dir,json.loads(Path(a.controls).read_text(encoding="utf-8")))
+            report["scope"]="Aggregate diagnostic only; no real-agency acceptance conclusion"
+            passed=report["passed"]
+            status="PASS (aggregate checks only)" if passed else "FAIL"
+        exit_code = 0 if passed else 1
+    except Exception as exc:
+        status = "INVALID_INPUT"
+        report = {"acceptance_status": status, "passed": False, "errors": [str(exc)]}
+        exit_code = 2
+    try:
+        payload = json.dumps(report, indent=2, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        status, exit_code = "INVALID_INPUT", 2
+        payload = json.dumps({"acceptance_status": status, "passed": False, "errors": [str(exc)]}, indent=2)
+    output = Path(a.out)
+    output.parent.mkdir(parents=True,exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(payload)
+        os.replace(temporary, output)
+    finally:
+        if temporary and temporary.exists():
+            temporary.unlink()
+    print(status)
+    raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":
