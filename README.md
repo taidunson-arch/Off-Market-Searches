@@ -3,7 +3,7 @@
 The active agency implementation is `skills/preservation-loan-book/scripts/`.
 The root `App.tsx`, commercial data, and off-market archives are legacy buyer-oriented material; they are not the agency application.
 
-Start with [the HFA operations guide](skills/preservation-loan-book/references/hfa-operations.md), [instrument model](skills/preservation-loan-book/references/instrument-model.md), [case management](skills/preservation-loan-book/references/case-management.md), and [four risk dimensions](skills/preservation-loan-book/references/risk-dimensions.md).
+Start with [the HFA operations guide](skills/preservation-loan-book/references/hfa-operations.md), [instrument model](skills/preservation-loan-book/references/instrument-model.md), [case management](skills/preservation-loan-book/references/case-management.md), [four risk dimensions](skills/preservation-loan-book/references/risk-dimensions.md), and [real-agency validation protocol](skills/preservation-loan-book/references/agency-validation.md).
 
 The agency pipeline provides preservation screening, instrument-level loan/grant records,
 board outputs, separate risk dimensions, and an optional persistent local work queue.

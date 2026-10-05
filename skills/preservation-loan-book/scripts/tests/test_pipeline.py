@@ -107,6 +107,10 @@ def test_independent_dimensions_reach_pipeline_brief_workbook_and_result():
             wb.close()
     for lane in ("preservation", "financial", "data_gaps", "readiness_gaps"):
         assert os.path.isfile(os.path.join(d, lane + "_attention.csv"))
+    inventory = json.load(open(os.path.join(d, "rule_inventory.json"), encoding="utf-8"))
+    assert {r["rule_id"] for r in inventory} == {"preservation_calendar", "financial_thresholds", "readiness_gates", "recapture_terms", "intervention_mandate"}
+    assert all(len(r["bundle_sha256"]) == 64 and r["review_status"] == "NOT_REVIEWED" for r in inventory)
+    assert not next(r for r in inventory if r["rule_id"] == "financial_thresholds")["configured"]
 
 
 def test_brief_header_verbatim_and_board_totals_agree():
