@@ -287,7 +287,7 @@ LEAD_COLUMNS: List[str] = [
 ]
 
 EVENT_COLUMNS: List[str] = [
-    "event_id", "property_id", "event_type", "event_family", "direction", "event_date", "months_out", "urgency_band",
+    "event_id", "property_id", "instrument_id", "event_type", "event_family", "direction", "event_date", "months_out", "urgency_band",
     "basis", "confidence", "source", "source_vintage", "derivation", "program", "detail", "value", "verify_flag",
     "alt_dates", "window_start", "window_end", "status", "event_date_quality",
 ]

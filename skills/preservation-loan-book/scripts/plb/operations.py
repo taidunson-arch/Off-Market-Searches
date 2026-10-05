@@ -40,6 +40,12 @@ def connect(path):
     for table in ("runs", "properties", "instruments", "covenants", "evidence"):
         for operation in ("UPDATE", "DELETE"):
             db.execute(f"CREATE TRIGGER IF NOT EXISTS {table}_no_{operation.lower()} BEFORE {operation} ON {table} BEGIN SELECT RAISE(ABORT,'immutable run snapshot'); END")
+    from .book_model import migrate
+    try:
+        migrate(db)
+    except Exception:
+        db.close()
+        raise
     return db
 
 
@@ -51,6 +57,8 @@ def _audit(db, cid, actor, operation, detail):
 def import_run(db, manifest, leads, events, calendar):
     """Atomic import; identical run IDs are never silently overwritten. Closed cases stay closed."""
     rid = manifest["run_id"]
+    from .book_model import build_model, persist_graph
+    graph = build_model(leads, events, calendar, manifest)
     with db:
         if db.execute("SELECT 1 FROM runs WHERE run_id=?", (rid,)).fetchone():
             raise ValueError("run already imported")
@@ -63,20 +71,13 @@ def import_run(db, manifest, leads, events, calendar):
                 db.execute("INSERT INTO covenants VALUES(?,?,?,?,?)", (rid, position["instrument_id"], position.get("covenant_status", ""),
                                                                       position.get("affordability_end", ""), position.get("recapture_end", "")))
         for row in events:
-            eid = row.get("event_id") or hashlib.sha256(json.dumps(row, sort_keys=True).encode()).hexdigest()
+            eid = hashlib.sha256(json.dumps([row.get("source", ""), row.get("event_id") or row], sort_keys=True).encode()).hexdigest()
             existing = db.execute("SELECT payload FROM evidence WHERE run_id=? AND event_id=?", (rid, eid)).fetchone()
             payload = json.dumps(row, sort_keys=True)
             if existing and existing[0] != payload:
                 raise ValueError(f"conflicting event identity {eid}")
             db.execute("INSERT OR IGNORE INTO evidence VALUES(?,?,?,?)", (rid, eid, row["property_id"], payload))
-        for row in calendar:
-            due = date.fromisoformat(row["due_date"]).isoformat()
-            key = json.dumps([row["property_id"], row["agency_action_type"], due])
-            cid = hashlib.sha256(key.encode()).hexdigest()[:24]
-            if not db.execute("SELECT 1 FROM cases WHERE case_id=?", (cid,)).fetchone():
-                db.execute("INSERT INTO cases(case_id,property_id,event_type,due_date,source_run) VALUES(?,?,?,?,?)",
-                           (cid, row["property_id"], row["agency_action_type"], due, rid))
-                _audit(db, cid, "pipeline", "CREATED", {"run_id": rid, "suggested_role": row.get("agency_owner", "")})
+        persist_graph(db, rid, graph)
 
 
 def change_case(db, case_id, actor, expected_version, operation, value="", evidence=""):

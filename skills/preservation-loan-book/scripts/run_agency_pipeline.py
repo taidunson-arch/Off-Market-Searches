@@ -819,8 +819,14 @@ def execute(argv, run_dir, run_id):
             positions.append(dict(position, property_id=row["property_id"], recapture_exposure=exposure["exposure"], recapture_flag=exposure["flag"]))
     from plb.instruments import FIELDS
     pd.DataFrame(positions, columns=["property_id", "instrument_id", *FIELDS, "recapture_exposure", "recapture_flag"]).to_csv(os.path.join(run_dir, "instruments.csv"), index=False)
-    pd.DataFrame([{k:r.get(k, "") for k in ("property_id", "instrument_id", "covenant_status", "affordability_end", "recapture_end")} for r in positions],
-                 columns=["property_id", "instrument_id", "covenant_status", "affordability_end", "recapture_end"]).to_csv(os.path.join(run_dir, "covenants.csv"), index=False)
+    from plb.book_model import build_model
+    graph = build_model(scored_frame.to_dict(orient="records"), _read(os.path.join(run_dir, "events.csv")).to_dict(orient="records"),
+                        _read(os.path.join(run_dir, "agency_calendar.csv")).to_dict(orient="records"), manifest)
+    atomic_json(os.path.join(run_dir, "book_model.json"), graph)
+    pd.DataFrame(graph["covenants"], columns=["covenant_id", "instrument_id", "property_id", "covenant_type", "effective_from", "effective_to", "status", "verification"]).to_csv(os.path.join(run_dir, "covenants.csv"), index=False)
+    for entity in ("covenants", "events", "evidence", "event_evidence", "actions", "action_events", "linkage_issues"):
+        rows = [{k: json.dumps(v, sort_keys=True) if isinstance(v, (dict, list)) else v for k, v in row.items()} for row in graph[entity]]
+        pd.DataFrame(rows).to_csv(os.path.join(run_dir, f"model_{entity}.csv"), index=False)
     observation_rows = []
     if cfg.get("financial_observations"):
         observation_path = cfg["financial_observations"]
@@ -842,6 +848,7 @@ def execute(argv, run_dir, run_id):
         rp = write_result_json(run_dir, cfg, as_of, prof, sources_used, manifest, pack)
         result = json.load(open(rp, encoding="utf-8"))
         result["instruments"] = positions
+        result["book_model"] = graph
         result["risk_dimensions"] = risk_rows
         atomic_json(rp, result)
         manifest["stages"]["result_json"] = rp

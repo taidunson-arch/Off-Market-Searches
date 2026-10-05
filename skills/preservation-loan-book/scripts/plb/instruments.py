@@ -9,7 +9,8 @@ from .recap_math import recapture_exposure
 FIELDS = ("book_kind", "agency_loan_ids", "grant_ids", "asset_ids", "contract_ids", "agency_programs",
           "public_upb", "our_rate", "payment_type", "our_maturity", "our_maturity_basis", "affordability_end",
           "recapture_type", "recapture_method", "recapture_amount", "recapture_start", "recapture_end",
-          "covenant_status", "senior_maturity", "senior_upb", "units_assisted", "source_vintages", "as_of_date")
+          "covenant_status", "senior_maturity", "senior_upb", "units_assisted", "source_vintages", "as_of_date",
+          "origination_date", "contract_expiration", "lien_position", "rate_type", "accrued_interest")
 ID_FIELD = {"loan": "agency_loan_ids", "grant": "grant_ids", "owned_asset": "asset_ids", "administered_contract": "contract_ids"}
 
 

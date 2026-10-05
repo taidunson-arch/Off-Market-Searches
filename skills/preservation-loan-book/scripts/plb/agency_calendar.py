@@ -157,7 +157,7 @@ def derive(leads: pd.DataFrame, events: pd.DataFrame, as_of: date, params: Dict[
     # drop prior AGENCY_DEADLINE / window / breach rows that this pass regenerates (idempotent re-runs); keep servicing-derived ones
     regen = {"PRESERVATION_NOTICE_WINDOW", "NOTICE_COMPLIANCE_BREACH", "PUSH_WINDOW_PREP", "PUSH_FIRST_NOTICE_DUE", "PUSH_SECOND_NOTICE_DUE",
              "TENANT_NOTICE_WINDOW", "HAP_OPTOUT_NOTICE_DEADLINE", "HAP_OPTOUT_PACKAGE_DUE"}
-    kept: List[Dict[str, Any]] = [e for e in ev_rows if not (e.get("event_type") in regen and str(e.get("source")).startswith(("agency_calendar", "OHCS", "HUD")))]
+    kept: List[Dict[str, Any]] = [e for e in ev_rows if not (not e.get("instrument_id") and e.get("event_type") in regen and str(e.get("source")).startswith(("agency_calendar", "OHCS", "HUD")))]
     new_events: List[Dict[str, Any]] = []
     leads = leads.copy().astype(object)
     for col in ("withdrawal_anchor_date", "push_anchor_source", "owner_cliff_type", "owner_cliff_date", "owner_cliff_band", "agency_action_type",
