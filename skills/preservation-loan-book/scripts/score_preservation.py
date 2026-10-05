@@ -184,7 +184,8 @@ def agency_calendar_rows(scored: pd.DataFrame, events: pd.DataFrame, as_of) -> p
     names = scored.set_index("property_id")["property_name"].to_dict() if len(scored) else {}
     rows = []
     for e in (events.to_dict(orient="records") if events is not None and len(events) else []):
-        if e.get("event_family") != "AGENCY_DEADLINE" or str(e.get("property_id")) not in names:
+        if (e.get("event_family") != "AGENCY_DEADLINE" or str(e.get("property_id")) not in names
+                or str(e.get("status") or "").upper() in ("REJECTED", "SUPPRESSED", "RESOLVED", "COMPLETED", "SUPERSEDED", "CANCELLED")):
             continue
         d = parse_iso(e.get("event_date"))
         mo = months_between(as_of, d) if d else None

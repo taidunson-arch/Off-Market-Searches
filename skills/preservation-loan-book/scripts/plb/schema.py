@@ -257,7 +257,7 @@ LEAD_COLUMNS: List[str] = [
     "restricted_units", "units_basis", "units_at_risk", "hap_units_at_risk", "prac_units_at_risk", "other_ra_units", "psh_units_at_risk",
     "family_3br_plus_units", "vulnerability_flags",
     # our position
-    "agency_loan_ids", "grant_ids", "agency_programs", "public_upb", "public_upb_at_risk", "public_grant_at_risk", "our_rate", "payment_type",
+    "instruments_json", "asset_ids", "contract_ids", "agency_loan_ids", "grant_ids", "agency_programs", "public_upb", "public_upb_at_risk", "public_grant_at_risk", "our_rate", "payment_type",
     "our_maturity", "our_maturity_basis", "affordability_end", "recapture_type", "recapture_method", "recapture_amount", "recapture_exposure",
     "covenant_status", "senior_lien_type", "senior_maturity", "senior_maturity_basis", "senior_upb", "coterminous_senior_cliff", "am_officer",
     # first events (v2 verbatim)

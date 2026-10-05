@@ -309,7 +309,8 @@ def derive(leads: pd.DataFrame, events: pd.DataFrame, as_of: date, params: Dict[
         leads.at[i, "urgency_band"] = leads.at[i, "action_band"]
         # refresh events_in_horizon (status changes such as STALE)
         inh = [e for e in evs if e.get("direction") == "PRESSURE" and e.get("event_type") not in HELPER_EVENTS and e.get("event_family") != "AGENCY_DEADLINE"
-               and e.get("status") not in ("REJECTED", "SUPPRESSED") and e.get("months_out") not in ("", None) and -12 <= float(e["months_out"]) <= horizon_months]
+               and str(e.get("status") or "").upper() not in ("REJECTED", "SUPPRESSED", "RESOLVED", "COMPLETED", "SUPERSEDED", "CANCELLED")
+               and e.get("months_out") not in ("", None) and float(e["months_out"]) <= horizon_months]
         inh.sort(key=lambda e: e["event_date"])
         leads.at[i, "events_in_horizon"] = json.dumps([{k: e.get(k, "") for k in EIH_KEYS} for e in inh])
     leads.attrs["stale_contract_dates"] = stale_count
@@ -318,35 +319,30 @@ def derive(leads: pd.DataFrame, events: pd.DataFrame, as_of: date, params: Dict[
 
 
 def owner_cliff(evs: List[Dict[str, Any]], as_of: date) -> Optional[Dict[str, Any]]:
-    """Earliest future owner-side PRESSURE event (REGULATORY non-helper, DEBT; not STALE / PROXY / Year 15 / rollup); when none is
-    future, the latest past restriction end (OVERDUE: expired with no renewal or termination evidence, a verify case)."""
+    """Earliest unresolved owner-side obligation, including overdue events until explicitly resolved."""
     cands = []
     for e in evs:
         if e.get("direction") != "PRESSURE" or e.get("event_family") not in ("REGULATORY", "DEBT"):
             continue
-        if e.get("event_type") in NOT_OWNER_CLIFF or e.get("status") in ("REJECTED", "SUPPRESSED", "STALE_CONTRACT_DATE") or str(e.get("basis")) == "PROXY":
+        if e.get("event_type") in NOT_OWNER_CLIFF or str(e.get("status") or "").upper() in ("REJECTED", "SUPPRESSED", "STALE_CONTRACT_DATE", "RESOLVED", "COMPLETED", "SUPERSEDED", "CANCELLED") or str(e.get("basis")) == "PROXY":
             continue
         d = parse_iso(e.get("event_date"))
         if d:
             cands.append((d, e))
     if not cands:
         return None
-    fut = [c for c in cands if c[0] >= as_of]
-    if fut:
-        d, e = min(fut, key=lambda c: c[0])
-    else:
-        d, e = max(cands, key=lambda c: c[0])
+    d, e = min(cands, key=lambda c: c[0])
     return {"event_type": e["event_type"], "date": d, "basis": e.get("basis"), "source": e.get("source")}
 
 
 def agency_action(evs: List[Dict[str, Any]], as_of: date) -> Optional[Dict[str, Any]]:
-    """Earliest AGENCY_DEADLINE event with months_out >= -12 (OVERDUE kept twelve months)."""
+    """Earliest unresolved AGENCY_DEADLINE. Age alone never closes an obligation."""
     cands = []
     for e in evs:
-        if e.get("event_family") != "AGENCY_DEADLINE" or e.get("status") == "REJECTED":
+        if e.get("event_family") != "AGENCY_DEADLINE" or str(e.get("status") or "").upper() in ("REJECTED", "SUPPRESSED", "RESOLVED", "COMPLETED", "SUPERSEDED", "CANCELLED"):
             continue
         d = parse_iso(e.get("event_date"))
-        if d and months_between(as_of, d) >= -12:
+        if d:
             cands.append((d, e))
     if not cands:
         return None

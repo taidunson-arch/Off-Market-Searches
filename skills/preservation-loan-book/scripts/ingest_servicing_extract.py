@@ -208,7 +208,7 @@ def run(a) -> Dict[str, Any]:
             asset_class="affordable_regulated", status="Active", units=int(units_assisted) if units_assisted is not None and kind in ("owned_asset", "administered_contract") else "",
             programs=program, owner_name=owner, owner_type=owner_type, owner_archetype=arch["archetype"], sponsor_contact_role=arch["decision_maker_role"],
             org_resolution_grade="B" if owner else "C", universe="our_book", in_inventory=False, book_match="self_owned" if self_owned else "matched", book_join_grade="",
-            book_kind=kind, agency_loan_ids=ids["agency_loan_id"], grant_ids=ids["grant_id"], agency_programs=program,
+            book_kind=kind, agency_loan_ids=ids["agency_loan_id"], grant_ids=ids["grant_id"], asset_ids=ids["asset_id"], contract_ids=ids["contract_id"], agency_programs=program,
             public_upb=_num(r.get("upb")) if _num(r.get("upb")) is not None else "", our_rate=_num(r.get("rate")) if _num(r.get("rate")) is not None else "",
             payment_type=_s(r.get("payment_type")), our_maturity=D.iso(dates.get("maturity")), our_maturity_basis=basis if dates.get("maturity") else "",
             affordability_end=D.iso(dates.get("affordability_end")), recapture_type=_s(r.get("recapture_type")),

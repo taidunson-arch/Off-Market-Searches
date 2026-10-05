@@ -21,6 +21,7 @@ import pandas as pd
 
 from .dates import months_between, parse_iso, timing_fraction
 from .recap_math import recapture_exposure
+from .instruments import parse_instruments, grant_exposure
 from .schema import FLAG_MISSING_SOURCE, URGENCY_BANDS, URGENCY_ORDER, clean_numeric
 
 BAND_ROWS = ["OVERDUE", "CRITICAL", "URGENT", "APPROACHING", "MONITOR", "SCHEDULED", "BEYOND", "stale_contract_date_verify", "no_dated_cliff"]
@@ -128,9 +129,10 @@ def fill_units_block(leads: pd.DataFrame, as_of: date) -> pd.DataFrame:
         # recapture exposure
         amt = _num(r.get("recapture_amount"))
         method = str(r.get("recapture_method") or ("none" if not amt else "full"))
-        if amt is not None or method == "cdbg_fmv_share":
-            rx = recapture_exposure(amt, parse_iso(r.get("recapture_start")) if "recapture_start" in out.columns else None,
-                                    parse_iso(r.get("recapture_end")) if "recapture_end" in out.columns else None, as_of, method)
+        instruments = parse_instruments(r.get("instruments_json"))
+        if instruments or amt is not None or method == "cdbg_fmv_share":
+            rx = grant_exposure(instruments, as_of) if instruments else recapture_exposure(
+                amt, parse_iso(r.get("recapture_start")), parse_iso(r.get("recapture_end")), as_of, method)
             out.at[i, "recapture_exposure"] = rx["exposure"] if rx["exposure"] is not None else ""
             out.at[i, "public_grant_at_risk"] = rx["exposure"] if rx["exposure"] is not None else ""
             if rx["flag"]:
@@ -178,9 +180,15 @@ def units_at_risk_json(leads: pd.DataFrame, as_of: date, profile: str = "hfa", v
     upb_watch = 0.0
     units_le24 = 0.0
     units_total = 0.0
+    book_properties = 0
+    missing_units = 0
+    missing_dates = 0
+    missing_balances = 0
+    expected_join_gaps = 0
     for r in leads.to_dict(orient="records"):
         if str(r.get("exclusion_reason")) in ("in_development", "outside_geography"):
             continue
+        expected_join_gaps += str(r.get("book_match")) == "unmatched_expected"
         band = str(r.get("owner_cliff_band") or "")
         stale = "hap_date_stale" in str(r.get("signals") or "") and not band
         row_band = band if band in by_band else ("stale_contract_date_verify" if stale else "no_dated_cliff")
@@ -193,7 +201,6 @@ def units_at_risk_json(leads: pd.DataFrame, as_of: date, profile: str = "hfa", v
             _add(by_year[str(d.year)], r, cols)
         mo = months_between(as_of, d) if d else None
         ua = _num(r.get("units_at_risk")) or 0
-        units_total += ua
         if mo is not None and mo <= 36 and band in ("OVERDUE", "CRITICAL", "URGENT", "APPROACHING"):
             headline["properties"] += 1
             headline["units_at_risk"] += ua
@@ -201,9 +208,16 @@ def units_at_risk_json(leads: pd.DataFrame, as_of: date, profile: str = "hfa", v
             headline["prac_units_at_risk"] += _num(r.get("prac_units_at_risk")) or 0
             headline["psh_units_at_risk"] += _num(r.get("psh_units_at_risk")) or 0
             headline["public_upb_at_risk"] += _num(r.get("public_upb_at_risk")) or 0
-        if mo is not None and mo <= 24:
-            units_le24 += ua
-        if str(r.get("book_match")) in ("matched", "self_owned", "book_only"):
+        in_book = str(r.get("universe")) == "our_book" or (
+            not str(r.get("universe") or "").strip() and str(r.get("book_match")) in ("matched", "self_owned", "book_only"))
+        if in_book:
+            book_properties += 1
+            units_total += ua
+            missing_units += _num(r.get("units_at_risk")) is None
+            missing_dates += d is None
+            missing_balances += "loan" in str(r.get("book_kind") or "").split(";") and _num(r.get("public_upb")) is None
+            if mo is not None and mo <= 24:
+                units_le24 += ua
             upb = _num(r.get("public_upb")) or 0
             upb_total += upb
             if str(r.get("covenant_status")) in ("watch", "default") or (_num(r.get("public_upb_at_risk")) or 0) > 0:
@@ -214,8 +228,27 @@ def units_at_risk_json(leads: pd.DataFrame, as_of: date, profile: str = "hfa", v
     share_upb = (upb_watch / upb_total) if upb_total else 0.0
     share_units = (units_le24 / units_total) if units_total else 0.0
     verdict = "CRITICAL" if share_upb >= 0.50 or share_units >= 0.25 else ("STRESSED" if share_upb >= 0.25 or share_units >= 0.12 else ("WATCH" if share_upb >= 0.10 or share_units >= 0.05 else "STABLE"))
+    gaps = []
+    if not book_properties:
+        gaps.append("no agency book rows")
+    if not units_total and not upb_total:
+        gaps.append("no measurable book units or UPB")
+    if missing_units:
+        gaps.append(f"{missing_units} book properties missing units")
+    if missing_dates:
+        gaps.append(f"{missing_dates} book properties missing a dated cliff")
+    if missing_balances:
+        gaps.append(f"{missing_balances} loan properties missing UPB")
+    if expected_join_gaps:
+        gaps.append(f"{expected_join_gaps} expected book properties unmatched")
+    observed_verdict = verdict
+    if gaps and verdict == "STABLE":
+        verdict = "INSUFFICIENT_DATA"
     return {"as_of": as_of.isoformat(), "agency_profile": profile, "board_totals_variant": variant, "columns": cols,
+            "book_scope": "observed agency book only; inventory excluded",
+            "book_coverage": {"properties": book_properties, "units": units_total, "units_with_cliff_le24": units_le24,
+                              "data_gaps": gaps, "observed_verdict": observed_verdict if book_properties else None},
             "by_owner_cliff_band": by_band, "by_jurisdiction": by_jur, "by_year": by_year, "headline": headline,
             "public_upb_total": round(upb_total, 0), "public_upb_on_watch": round(upb_watch, 0), "book_verdict": verdict,
-            "book_verdict_rule": "CRITICAL >= 50% of book UPB on watch/default or >= 25% of units with a cliff <= 24 mo; STRESSED >= 25% / 12%; WATCH >= 10% / 5%; else STABLE",
+            "book_verdict_rule": "CRITICAL >= 50% of book UPB on watch/default or >= 25% of units with a cliff <= 24 mo; STRESSED >= 25% / 12%; WATCH >= 10% / 5%; else STABLE only with sufficient data; otherwise INSUFFICIENT_DATA",
             "kpi": kpi or {"units_preserved_since_prior": 0, "units_lost_since_prior": 0, "flips": {}}}
