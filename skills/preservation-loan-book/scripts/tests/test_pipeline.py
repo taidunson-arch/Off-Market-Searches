@@ -87,6 +87,28 @@ def test_hfa_operations_snapshot_and_independent_reconciliation():
     assert not reconcile(r["dir"], controls)["passed"]
 
 
+def test_independent_dimensions_reach_pipeline_brief_workbook_and_result():
+    r = _pipeline()
+    d = r["dir"]
+    frame = pd.read_csv(os.path.join(d, "leads_scored.csv"), keep_default_na=False)
+    axes = {"preservation_urgency", "financial_risk", "data_confidence", "intervention_readiness"}
+    assert axes <= set(frame.columns)
+    result = json.load(open(os.path.join(d, "result.json"), encoding="utf-8"))
+    assert axes == set(result["dimension_counts"])
+    assert len(result["risk_dimensions"]) == len(frame)
+    assert "## Independent Risk Dimensions" in open(os.path.join(d, "brief.md"), encoding="utf-8").read()
+    for filename in ("Fixture_Preservation_LoanBook_10yr.xlsx", "Fixture_Board_Packet.xlsx"):
+        wb = openpyxl.load_workbook(os.path.join(d, filename), read_only=True)
+        try:
+            assert {"Risk_Dimensions", "Financial_Attention", "Data_Gaps", "Readiness_Gaps", "Preservation_Attention"} <= set(wb.sheetnames)
+            assert axes <= set(next(wb["Risk_Dimensions"].values))
+            assert wb["Risk_Dimensions"].max_row == len(frame) + 1
+        finally:
+            wb.close()
+    for lane in ("preservation", "financial", "data_gaps", "readiness_gaps"):
+        assert os.path.isfile(os.path.join(d, lane + "_attention.csv"))
+
+
 def test_brief_header_verbatim_and_board_totals_agree():
     r = _pipeline()
     d = r["dir"]

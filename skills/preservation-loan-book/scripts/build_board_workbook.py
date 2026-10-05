@@ -58,7 +58,11 @@ def write_board_packet_md(path: str, uar: dict, leads: pd.DataFrame, flips, reda
     for y, v in (uar.get("by_year") or {}).items():
         L.append(f"| {y} | " + " | ".join(str(v.get(c, 0)) for c in cols) + " |")
     L += ["", "SB 32 fields per property (expiration, units, assistance type, income level, preservation status) are in the Preservation_Queue tab of the packet workbook.", ""]
-    L += ["## Status Since Last Report", ""]
+    from plb.risk_dimensions import dimension_counts
+    L += ["## Independent Risk Dimensions", "", "Separate assessments; no overall score. See Risk_Dimensions and the four attention tabs.", ""]
+    for axis, counts in dimension_counts(packet.to_dict(orient="records")).items():
+        L.append(f"- {axis}: " + "; ".join(f"{status} {count}" for status, count in counts.items()))
+    L += ["", "## Status Since Last Report", ""]
     if flips is not None and len(flips):
         for ft, n in flips["flip_type"].value_counts().items():
             if ft:
