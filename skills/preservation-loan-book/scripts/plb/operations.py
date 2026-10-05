@@ -43,6 +43,8 @@ def connect(path):
     from .book_model import migrate
     try:
         migrate(db)
+        from .cases import migrate as migrate_cases
+        migrate_cases(db)
     except Exception:
         db.close()
         raise
@@ -81,59 +83,10 @@ def import_run(db, manifest, leads, events, calendar):
 
 
 def change_case(db, case_id, actor, expected_version, operation, value="", evidence=""):
-    """Optimistic concurrency and a separate reviewer for completion approval."""
-    if not actor.strip():
-        raise ValueError("actor required")
-    with db:
-        # Serialize read/modify/write across concurrent CLI processes.
-        db.execute("BEGIN IMMEDIATE")
-        record = db.execute("SELECT * FROM cases WHERE case_id=?", (case_id,)).fetchone()
-        if not record:
-            raise ValueError("unknown case")
-        row = dict(record)
-        if row["version"] != expected_version:
-            raise ValueError("case changed; reload before editing")
-        before = dict(row)
-        if operation == "assign":
-            if not value.strip() or row["status"] in ("CLOSED", "CANCELLED"):
-                raise ValueError("assign an open case to a named officer")
-            row["assigned_to"] = value.strip()
-        elif operation == "start":
-            if row["status"] != "OPEN" or not row["assigned_to"]:
-                raise ValueError("an assigned OPEN case is required")
-            row["status"] = "IN_PROGRESS"
-        elif operation == "submit":
-            if row["status"] not in ("OPEN", "IN_PROGRESS", "ESCALATED") or not row["assigned_to"] or not evidence.strip():
-                raise ValueError("assigned active case and completion evidence required")
-            row.update(status="PENDING_APPROVAL", evidence=evidence.strip(), submitted_by=actor, approved_by="")
-        elif operation == "approve":
-            if row["status"] != "PENDING_APPROVAL" or actor == row["submitted_by"] or not evidence.strip():
-                raise ValueError("independent reviewer and approval evidence required")
-            row.update(status="CLOSED", approved_by=actor)
-        elif operation in ("escalate", "cancel", "reopen"):
-            if not evidence.strip():
-                raise ValueError("reason/evidence required")
-            if operation == "reopen":
-                if row["status"] not in ("CLOSED", "CANCELLED"):
-                    raise ValueError("only a closed case can be reopened")
-                row.update(status="OPEN", submitted_by="", approved_by="", evidence="")
-            else:
-                if row["status"] in ("CLOSED", "CANCELLED"):
-                    raise ValueError("reopen the closed case first")
-                row["status"] = "ESCALATED" if operation == "escalate" else "CANCELLED"
-        else:
-            raise ValueError("unsupported operation")
-        db.execute("UPDATE cases SET assigned_to=?,status=?,version=version+1,evidence=?,submitted_by=?,approved_by=? WHERE case_id=?",
-                   (row["assigned_to"], row["status"], row["evidence"], row["submitted_by"], row["approved_by"], case_id))
-        _audit(db, case_id, actor, operation.upper(), {"before": before, "after": dict(row, version=expected_version+1), "evidence": evidence})
+    from .cases import change
+    return change(db, case_id, actor, expected_version, operation, value, evidence)
 
 
-def list_cases(db, as_of, include_closed=False):
-    rows = []
-    for row in db.execute("SELECT * FROM cases ORDER BY due_date,case_id"):
-        r = dict(row)
-        if not include_closed and r["status"] in ("CLOSED", "CANCELLED"):
-            continue
-        r["overdue_days"] = max(0, (as_of-date.fromisoformat(r["due_date"])).days) if r["status"] not in ("CLOSED", "CANCELLED") else 0
-        rows.append(r)
-    return rows
+def list_cases(db, as_of, include_closed=False, **filters):
+    from .cases import queue
+    return queue(db, as_of, include_closed, **filters)
