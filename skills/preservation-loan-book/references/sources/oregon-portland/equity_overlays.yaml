@@ -1,0 +1,18 @@
+# Optional equity overlay for the oregon-portland pack. Read by plb/scoring.build_context to set the context booleans
+# high_displacement_tract and underserved_district (+2 / +2 in stacking_geography_equity). When this file is absent or
+# its lists are empty every lead scores 0 on both and the Assumptions tab says "equity overlay absent".
+#
+# The OHCS CSV carries Congressional, OR Senate and OR House districts and a Geocode WKT point but no census tract and
+# no Portland council district. Portland's post-2024 council districts need a point-in-polygon join on the Geocode and
+# are deferred to a later build. Available jurisdiction keys now: county, city, OR legislative districts.
+as_of: null
+source: null                      # name the displacement-risk study / award ledger you read; verified_live false until then
+verified_live: false
+high_displacement_tracts:
+  tract_geoids: []                # 11-digit census tract GEOIDs; requires a tract join (not shipped) -> leave empty or supply a precomputed property_id list
+  property_ids: []                # precomputed: property ids inside high-displacement tracts (analyst-supplied)
+underserved_districts:
+  key: or_house_district          # or_house_district | or_senate_district | county | city
+  values: []                      # e.g. ["OR House 44", "OR House 46"] — districts with prior-award counts below the agency's threshold
+  prior_awards_by_district: {}    # optional ledger: {district: award_count} used to derive `values` with threshold below
+  threshold_awards: null

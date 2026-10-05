@@ -1,0 +1,261 @@
+{
+  "_schema": "preservation-loan-book class scoring v1.0 (public-agency asset management). Shape follows references/pipeline-contract.md Section 11: v2's factor/band/modifier/match grammar plus factor-level `requires`, band option `basis_from: governing_event`, and the DSL ops `absent` and `contains`. `lever` is renamed `intervention` (the tool the agency can deploy); `reading` is how the agency asset manager experiences the signal. Multipliers, queue bands, caps, decay and route precedence live in shared_adjustments.json and are never restated here. Weights sum to 100. Every band carries id, event_type or signal, match, points, reading, intervention. A factor with empty evidence scores 0.",
+  "class": "affordable_public_am",
+  "applies_to_asset_class": ["affordable_regulated"],
+  "version": "1.0",
+  "total_weight": 100,
+  "units_at_risk_rule": {
+    "description": "Units are counted once, in plb/units.py, and read by this table through the lead columns units_at_risk, hap_units_at_risk, prac_units_at_risk, other_ra_units, psh_units_at_risk. They never multiply the 0-100 score; board_impact = units_at_risk x timing_fraction(owner_cliff_band) is a separate sort key and the Board_Totals input.",
+    "restricted_units": "Total Units - Market_Rate_Units (blank market = 0, units_basis total_assumed_restricted); AMI buckets that sum to Total Units set units_basis reported_buckets; buckets are otherwise descriptive only; Total Units blank -> units blank + 'Missing Source — Request Document'.",
+    "units_at_risk": "restricted_units when the governing owner-cliff event's program covers the whole property (LIHTC extended use, HAP, HUD/USDA); the program's units_assisted from the servicing extract for SOFT_PROGRAM_END / AFFORDABILITY_PERIOD_END when matched, else restricted_units with units_basis proxy.",
+    "hap_units_at_risk": "Rental_Assistance_Count only when HUD Contract is Housing Assistance Payment (program HAP) or RAC; PRAC/PAC -> prac_units_at_risk; otherwise other_ra_units. The three are never summed into one figure.",
+    "psh_units_at_risk": "PSH_Units overlay; not additive to restricted_units.",
+    "window": "Factor units_households_at_risk scores only when the governing owner-cliff event is within -12..60 months (OVERDUE through MONITOR). Beyond 60 months the units still appear in Board_Totals and Units_by_Year at 0 points."
+  },
+  "factors": [
+    {
+      "name": "units_households_at_risk",
+      "weight": 25,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": true,
+      "basis_from": "governing_event",
+      "requires": {"field": "owner_cliff_months_out", "op": "between", "value": [-12, 60], "inclusive": true},
+      "cap": 25,
+      "floor": 0,
+      "bands": [
+        {"id": "units_1_4", "event_type": null, "signal": "units_at_risk", "match": {"field": "units_at_risk", "op": "between", "value": [1, 5]}, "points": 3, "reading": "Under five restricted homes: outside PuSH (ORS 456.250 covers 5+ units) but still households whose protection ends inside the window.", "intervention": "board_packet_summary; covenant_recapture_review when a HOME/CDBG period is the cliff"},
+        {"id": "units_5_19", "event_type": null, "signal": "units_at_risk", "match": {"field": "units_at_risk", "op": "between", "value": [5, 20]}, "points": 8, "reading": "A small building whose restrictions end inside five years; one lost HAP contract here is a whole building of households.", "intervention": "preservation_nofa_invitation; board_packet_summary"},
+        {"id": "units_20_49", "event_type": null, "signal": "units_at_risk", "match": {"field": "units_at_risk", "op": "between", "value": [20, 50]}, "points": 14, "reading": "Mid-size restricted stock with a dated cliff; the scale a single NOFA award or 0% recap can carry.", "intervention": "preservation_nofa_invitation; loan_extension_recast_memo when in book"},
+        {"id": "units_50_99", "event_type": null, "signal": "units_at_risk", "match": {"field": "units_at_risk", "op": "between", "value": [50, 100]}, "points": 20, "reading": "Fifty to ninety-nine restricted homes with a dated cliff: a board-visible loss if nothing is done.", "intervention": "preservation_nofa_invitation; recap_committee memo; board_packet_summary"},
+        {"id": "units_100_plus", "event_type": null, "signal": "units_at_risk", "match": {"field": "units_at_risk", "op": "gte", "value": 100}, "points": 25, "reading": "One hundred or more restricted homes with protection ending inside five years; boards count units, and this is the line they read first.", "intervention": "board_packet_summary; preservation_nofa_invitation; designee appointment where PuSH applies"}
+      ],
+      "modifiers": [
+        {"id": "psh_gt0", "event_type": null, "signal": "psh_units_at_risk", "match": {"field": "psh_units_at_risk", "op": "gt", "value": 0}, "points": 3, "reading": "Permanent supportive housing units are the hardest households to re-house; losing them lands on the county's homelessness system.", "intervention": "psh_bond / services-funder coordination inside preservation_nofa_invitation"},
+        {"id": "elderly_or_disabled_type", "event_type": null, "signal": "elderly_or_disabled", "match": {"field": "elderly_or_disabled", "op": "eq", "value": true}, "points": 2, "reading": "Elderly or disabled property type: residents with the least ability to absorb displacement; 202/811 and PRAC stock concentrates here.", "intervention": "prac_renewal_coordination or hud_legacy_response as applicable"},
+        {"id": "family_3br_share_ge_25", "event_type": null, "signal": "family_3br_share", "match": {"field": "family_3br_share", "op": "gte", "value": 0.25}, "points": 2, "reading": "A quarter or more of the units are three bedrooms or larger: family housing that the market does not replace at restricted rents.", "intervention": "preservation_nofa_invitation (family set-aside where the mandate has one)"},
+        {"id": "hap_share_ge_50", "event_type": null, "signal": "hap_share", "match": {"field": "hap_share", "op": "gte", "value": 0.5}, "points": 3, "reading": "Half or more of the restricted units carry project-based assistance: deep subsidy that leaves with the contract, not with the rent limit.", "intervention": "optout_tenant_notice_check; optout_response_plan"}
+      ],
+      "notes": "Attribute factor whose basis multiplier is borrowed from the governing owner-cliff event (basis_from governing_event): 120 units at risk on a REPORTED LIHTC extended-use end at 30 months scores 25 x 0.90; the same units at 90 months score 0 because `requires` fails. units_basis is a flag, not a second multiplier. Cap 25 after modifiers; nothing here subtracts."
+    },
+    {
+      "name": "restriction_hap_qc_clock",
+      "weight": 20,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 20,
+      "floor": 0,
+      "bands": [
+        {"id": "extended_use_le_36", "event_type": "LIHTC_EXTENDED_USE_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 20, "reading": "Year 30 cliff inside three years: the extended-use agreement ends and the PuSH first-notice window is open or past; the agency's tools are the notice audit, the designee appointment and a recap award.", "intervention": "push_window_prep -> push_notice_demand_letter when due passes; preservation_nofa_invitation; rofr_notice_recording"},
+        {"id": "extended_use_36_60", "event_type": "LIHTC_EXTENDED_USE_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 12, "reading": "Extended use ends inside the five-year preservation planning horizon; the award cohort that lands 12-24 months before the cliff must be chosen now.", "intervention": "preservation_nofa_invitation (align cohort); push_window_prep"},
+        {"id": "year15_12_36_any_owner", "event_type": "LIHTC_COMPLIANCE_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [12, 36]}, "points": 14, "reading": "Year 15 is a decision point for any owner: the LP exits, a nonprofit GP may exercise its 42(i)(7) ROFR, a for-profit GP may seek a qualified contract or a sale. The agency scores the decision point, not the owner's politics.", "intervention": "ta_sponsor_engagement (mission GP); qc_request_acknowledgement if a QC request arrives; rofr_notice_recording where PuSH applies"},
+        {"id": "year15_past_24_no_transfer", "event_type": "LIHTC_COMPLIANCE_END", "signal": null, "match": {"all": [{"field": "months_out", "op": "lt", "value": -24}, {"field": "ownership_changed_since_year15", "op": "eq", "value": false}]}, "points": 8, "reading": "Two or more years past Year 15 with no transfer: the LP interest may have traded to an aggregator while the extended-use agreement still runs.", "intervention": "ta_sponsor_engagement; push_records_request once a notice is on file; ask who holds the LP interest"},
+        {"id": "hap_le_24", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [0, 24]}, {"field": "program", "op": "in", "value": ["HAP", "RAC", "PBV"]}, {"field": "status", "op": "eq", "value": "FUTURE"}]}, "points": 18, "reading": "Section 8 contract expires inside 24 months: a renewal-or-opt-out decision the contract administrator reviews; the one-year tenant/CA notice (24 CFR 402.8) and the 120-day opt-out package are the agency's clocks.", "intervention": "optout_tenant_notice_check; optout_response_plan (MU2M / 20-year counteroffer, nonprofit transfer)"},
+        {"id": "hap_stale_le_12_past", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"all": [{"field": "status", "op": "eq", "value": "STALE_CONTRACT_DATE"}, {"field": "months_out", "op": "between", "value": [-12, 0]}]}, "points": 6, "reading": "The recorded HAP expiration is in the past with no termination evidence: an annual renewal most likely rolled and the source is stale, not a lost contract.", "intervention": "optout_tenant_notice_check (confirm the current contract and TRACS expiration at the CA); request the current HAP contract"},
+        {"id": "hap_24_60", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [24, 60]}, {"field": "program", "op": "in", "value": ["HAP", "RAC", "PBV"]}]}, "points": 10, "reading": "Section 8 contract runs out inside the planning horizon; under annual renewal the date will roll, under a multi-year term it is the decision point.", "intervention": "optout_response_plan (early); confirm renewal option at the CA"},
+        {"id": "prac_le_24", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [0, 24]}, {"field": "program", "op": "in", "value": ["PRAC", "PAC"]}]}, "points": 10, "reading": "202/811 PRAC or PAC renewal inside 24 months: the risk is appropriation and sponsor capacity, not an owner opt-out (Notice H 2022-05 five-year renewals; verify).", "intervention": "prac_renewal_coordination; hud_legacy_response"},
+        {"id": "hud_direct_le_36", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 16, "reading": "236 / 221(d)(3) / 202 maturity inside three years ends the use agreement unless decoupled, refinanced with a new use agreement, or prepaid under HUD notice.", "intervention": "hud_legacy_response (Notice H 2013-25 decoupling, H 2013-17 202 prepayment); loan_extension_recast_memo when in book"},
+        {"id": "usda_le_36", "event_type": "USDA_515_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 16, "reading": "Section 515 maturity inside three years ends interest credit and the RA tie; the public body can be the purchaser or the MPR partner.", "intervention": "usda_prepay_response; preservation_nofa_invitation (MPR pairing)"},
+        {"id": "usda_prepay_eligible", "event_type": "USDA_515_PREPAY_ELIGIBLE", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 12, "reading": "The borrower may file a prepayment request under 7 CFR 3560 subpart N; once filed, RD's tenant notice and the 180-day nonprofit/public-body offer window run.", "intervention": "usda_prepay_response (ask RD for the request status)"},
+        {"id": "usda_prepay_request_received", "event_type": "USDA_PREPAY_REQUEST_RECEIVED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 16, "reading": "A prepayment request is on file with RD: the public-body offer window (7 CFR 3560.659, verify) is the agency's purchase right.", "intervention": "usda_prepay_response; rofr_assignment_memo if a mission sponsor should take the offer"},
+        {"id": "affordability_period_end_le_36", "event_type": "AFFORDABILITY_PERIOD_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 14, "reading": "A HOME / CDBG / local affordability period ends inside three years: the covenant we recorded falls away unless re-invested or extended.", "intervention": "covenant_recapture_review; preservation_nofa_invitation (new period on re-investment)"},
+        {"id": "covenant_end_le_36", "event_type": "COVENANT_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 14, "reading": "A local regulatory agreement ends inside three years.", "intervention": "loan_extension_recast_memo (extend the covenant with the note); preservation_nofa_invitation"},
+        {"id": "soft_program_end_le_36", "event_type": "SOFT_PROGRAM_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 10, "reading": "A state soft-program affordability period (OAHTC, GHAP, HDGP, LIFT, HTF, HOME per OHCS) ends inside three years; rent limits on those units lift.", "intervention": "covenant_recapture_review; stack with other ends (see stacking factor)"},
+        {"id": "soft_program_end_36_60", "event_type": "SOFT_PROGRAM_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 5, "reading": "Soft-program period ends inside the planning horizon.", "intervention": "monitor; align with the award cohort"},
+        {"id": "latest_end_le_36", "event_type": "REGULATORY_LATEST_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 10, "reading": "The last known restriction on the property ends inside three years (OHCS LATEST or its recompute).", "intervention": "push_window_prep (confirm which agreement is last from our own file)"}
+      ],
+      "modifiers": [
+        {"id": "hap_fresh_mahra_20", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"field": "detail", "op": "eq", "value": "mahra_20yr_recent"}, "points": -5, "reading": "A 20-year MAHRA renewal was just executed: the owner is staying in the program.", "intervention": "servicing_watch only; no opt-out response"},
+        {"id": "hap_annual_renewal", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"field": "detail", "op": "in", "value": ["short_renewal_pattern", "annual_renewal", "term_unknown_annual_assumed"]}, "points": 2, "reading": "Annual or short renewals keep the owner's options open every year; the CA sees a renewal request or an opt-out notice each cycle.", "intervention": "optout_tenant_notice_check each cycle; confirm hap_renewal_request_status"},
+        {"id": "push_first_due_le_6", "event_type": "PUSH_FIRST_NOTICE_DUE", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [-1, 6], "inclusive": true}, {"field": "notice_status", "op": "in", "value": ["not_received_confirmed", "unknown"]}]}, "points": 4, "reading": "The anchor-minus-30-month date (the ORS 456.262 designee-appointment trigger, verify) falls inside the next six months or passed within the last month and no owner notice is on file: the agency's clock is about to start. Bounded so a long-passed date is not counted twice with first_notice_due_passed_unknown.", "intervention": "push_window_prep now; push_notice_demand_letter when the due date passes with not_received_confirmed"},
+        {"id": "qc_response_due_le_12", "event_type": "QC_RESPONSE_DUE", "signal": null, "match": {"field": "months_out", "op": "lte", "value": 12}, "points": 4, "reading": "The HFA's one-year qualified-contract period (IRC 42(h)(6)(I), verify) ends inside twelve months.", "intervention": "qc_marketing_plan; present a bona fide contract before the period ends"},
+        {"id": "hap_optout_package_due_le_6", "event_type": "HAP_OPTOUT_PACKAGE_DUE", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 6]}, "points": 3, "reading": "The 120-day opt-out package date (Renewal Guide ch. 11, verify) falls inside six months: the CA will know the owner's intent by then.", "intervention": "optout_tenant_notice_check; optout_response_plan"}
+      ],
+      "post_multipliers": [{"id": "recap_status"}],
+      "notes": "Take max of bands, add modifiers, cap 20, then the governing-event basis multiplier. HAP_EXPIRATION carries confidence 0.70 (annual / unknown term) or 0.90 (20-year MAHRA; PBV from the agency's own contract file) and the engine multiplies that band's points by the confidence. PRAC/PAC rows score through prac_le_24 only and never through hap_le_24. A STALE_CONTRACT_DATE row scores through hap_stale_le_12_past only. Modifiers that name AGENCY_DEADLINE types match events.csv rows (helpers are in events.csv, outside the basis counts and events_in_horizon). recap_status under_application/closed with RECORDED/REPORTED evidence halves this factor (shared_adjustments.multipliers.recap_status). LIFT or 60-year REUA ends beyond 120 months are BEYOND and never match a band."
+    },
+    {
+      "name": "declared_intent_vs_silence",
+      "weight": 15,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 15,
+      "floor": 0,
+      "bands": [
+        {"id": "push_first_received", "event_type": "PRESERVATION_NOTICE_RECEIVED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "push_first"}, "points": 15, "reading": "The owner has told OHCS and the affected local government the restrictions will end: the records right, the designee appointment and the recorded ROFR are now live.", "intervention": "push_records_request (10 days); rofr_notice_recording; designee appointment (ORS 456.262)"},
+        {"id": "push_second_received", "event_type": "PRESERVATION_NOTICE_RECEIVED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "push_second"}, "points": 15, "reading": "Second owner notice on file: withdrawal is no sooner than 24 months out; the match right and the tenant-notice check run from here.", "intervention": "rofr_match_offer readiness; tenant_notice_check; preservation_nofa_invitation"},
+        {"id": "hap_optout_received", "event_type": "PRESERVATION_NOTICE_RECEIVED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "hap_optout"}, "points": 15, "reading": "Section 8 opt-out notice on file with the CA / HUD: the one-year clock is running and enhanced vouchers follow unless the contract is kept through a transfer.", "intervention": "optout_response_plan; optout_tenant_notice_check (defective notice restarts the clock)"},
+        {"id": "third_party_offer_received", "event_type": "THIRD_PARTY_OFFER_RECEIVED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 15, "reading": "The owner has mailed a third-party offer to the ROFR holders: the 30-day match clock runs from the certified mailing (ORS 456.263, verify).", "intervention": "rofr_match_offer; rofr_assignment_memo"},
+        {"id": "notice_breach", "event_type": "NOTICE_COMPLIANCE_BREACH", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 15, "reading": "Working label (ORS 456.260/.262 unread): the anchor-minus-30-month date passed and the agency's own log confirms no notice: silence inside a statutory window is a compliance case, and withdrawal cannot occur until the clocks run from a proper notice.", "intervention": "push_notice_demand_letter; designee appointment on silence (ORS 456.262 as amended by HB 2095, verify); tenant_notice_check"},
+        {"id": "qc_lapsed", "event_type": "QC_ELIGIBILITY", "signal": null, "match": {"field": "status", "op": "eq", "value": "lapsed_decontrol"}, "points": 15, "reading": "No qualified contract was presented inside the one-year period: extended use has ended and the three-year tenant protection (IRC 42(h)(6)(E)(ii)) is the only restriction left.", "intervention": "qc_marketing_plan (last-chance preservation award); tenant protection monitoring"},
+        {"id": "qc_requested", "event_type": "QC_ELIGIBILITY", "signal": null, "match": {"all": [{"field": "status", "op": "eq", "value": "requested"}, {"field": "basis", "op": "eq", "value": "RECORDED"}]}, "points": 13, "reading": "A qualified-contract request is on the HFA's log: the one-year period to present a bona fide contract is running; presentment alone removes the exit.", "intervention": "qc_request_acknowledgement; qc_marketing_plan"},
+        {"id": "usda_prepay_request", "event_type": "USDA_PREPAY_REQUEST_RECEIVED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 13, "reading": "The 515 borrower has filed a prepayment request: RD tenant notice and the public-body offer window are running.", "intervention": "usda_prepay_response"},
+        {"id": "first_notice_due_passed_unknown", "event_type": null, "signal": "notice_window_state", "match": {"all": [{"field": "notice_window_state", "op": "in", "value": ["closed_first_due", "closed_second_due"]}, {"field": "notice_status", "op": "eq", "value": "unknown"}]}, "points": 6, "sets_flag": "Verify — Notice Log", "reading": "The first-notice due date has passed and the agency has not confirmed whether a notice was received: absence in our data is not owner silence until the PuSH-CP log says so.", "intervention": "push_window_prep first_action: confirm against the PuSH-CP log / ask OHCS; counted in Data Gaps"},
+        {"id": "rofr_recorded", "event_type": "ROFR_RECORDED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 8, "reading": "Our right (or a designee's) is recorded against the title: any third-party sale must be offered to us first.", "intervention": "rofr_match_offer readiness; rofr_assignment_memo"}
+      ],
+      "modifiers": [],
+      "post_multipliers": [{"id": "recap_status"}],
+      "notes": "Inside the first-notice window (anchor -36..-30 months) the owner is not late: this factor scores 0, the lead carries signal push_window_open_prep and a PUSH_WINDOW_PREP calendar row, and notice_compliance is a secondary route only. The 6-point band fires only on notice_status unknown after the due date; not_received_confirmed after the due date is expressed as the NOTICE_COMPLIANCE_BREACH event (emitted by plb/agency_calendar.py) and scores 15. The signal band first_notice_due_passed_unknown matches closed_second_due as well because the first due date has necessarily passed. QC bands require RECORDED basis (agency log or read REUA); an `eligible` status computed from allocation vintage alone never scores here."
+    },
+    {
+      "name": "our_capital_at_risk",
+      "weight": 15,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "requires": {"field": "book_match", "op": "in", "value": ["matched", "self_owned", "book_only"]},
+      "on_requires_fail": {
+        "unmatched_expected": {"factor_status": "WATCH", "points": 0, "flag": "Verify — Book Join", "book_join_gaps_row": true},
+        "not_in_extract": {"factor_status": "n/a", "points": 0},
+        "not_in_book": {"factor_status": "n/a", "points": 0},
+        "book_absent": {"factor_status": "n/a", "points": 0}
+      },
+      "cap": 15,
+      "floor": 0,
+      "bands": [
+        {"id": "covenant_default", "event_type": "COVENANT_DEFAULT", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 15, "reading": "Our loan or regulatory agreement is in default on our own books: public dollars and the covenant are both at risk now.", "intervention": "covenant_enforcement_notice; loan_extension_recast_memo (workout) to recap_committee"},
+        {"id": "recapture_trigger", "event_type": "RECAPTURE_TRIGGER", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 15, "reading": "A sale, payoff or foreclosure inside the affordability period has triggered recapture (24 CFR 92.254 / 92.503 / 570.505, verify).", "intervention": "covenant_recapture_review"},
+        {"id": "agency_loan_maturity_le_36", "event_type": "AGENCY_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 12, "reading": "Our note matures inside three years: a balloon the restricted NOI may not carry, and a decision point we control.", "intervention": "loan_extension_recast_memo; zero_pct_recap_term_sheet"},
+        {"id": "agency_loan_maturity_36_60", "event_type": "AGENCY_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 6, "reading": "Our note matures inside the five-year window; start the recast conversation 18 months out.", "intervention": "servicing_watch; loan_extension_recast_memo at maturity - 18 mo"},
+        {"id": "agency_loan_maturity_60_120", "event_type": "AGENCY_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [60, 120]}, "points": 3, "reading": "Our note matures inside the ten-year list.", "intervention": "servicing_watch (monitor)"},
+        {"id": "affordability_period_end_ours_le_36", "event_type": "AFFORDABILITY_PERIOD_END", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [0, 36]}, {"field": "source", "op": "eq", "value": "agency_servicing"}]}, "points": 10, "reading": "The affordability period on our own HOME / CDBG / local award ends inside three years (RECORDED from our ledger).", "intervention": "covenant_recapture_review; preservation_nofa_invitation (re-invest for a new period)"},
+        {"id": "grant_recapture_end_le_36", "event_type": "GRANT_RECAPTURE_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 8, "reading": "Our grant's recapture period ends inside three years: the last window in which a sale returns public dollars.", "intervention": "covenant_recapture_review"},
+        {"id": "shared_appreciation_due_le_36", "event_type": "SHARED_APPRECIATION_DUE", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 6, "reading": "Our shared-appreciation note comes due inside three years.", "intervention": "loan_extension_recast_memo"},
+        {"id": "covenant_watch", "event_type": null, "signal": "covenant_status", "match": {"field": "covenant_status", "op": "eq", "value": "watch"}, "points": 6, "reading": "Our asset manager has the loan on watch (covenant_status watch).", "intervention": "covenant_enforcement_notice (cure path); servicing_watch"},
+        {"id": "owned_asset_cliff_le_36", "event_type": null, "signal": "self_owned", "match": {"all": [{"field": "self_owned", "op": "eq", "value": true}, {"field": "owner_cliff_months_out", "op": "between", "value": [0, 36]}]}, "points": 8, "reading": "Our own asset (PHA-owned) has a restriction, contract or debt cliff inside three years.", "intervention": "pha_repositioning (RAD / Section 18 / recap)"}
+      ],
+      "modifiers": [
+        {"id": "coterminous_senior_cliff", "event_type": null, "signal": "coterminous_senior_cliff", "match": {"field": "coterminous_senior_cliff", "op": "eq", "value": true}, "points": 3, "reading": "A senior HUD / agency / bank maturity or HAP expiration lands within 24 months of our maturity: a stacked balloon the recast must solve together.", "intervention": "loan_extension_recast_memo (resubordination with the senior refinance); sizing-lihtc-permanent-debt handoff"}
+      ],
+      "notes": "Factor-scoped, never lead-scoped: book_match unmatched_expected scores 0 with factor status WATCH, flag 'Verify — Book Join' and a Book_Join_Gaps row, and the lead's queue_band is not capped; not_in_extract / not_in_book / book_absent make the factor n/a with no flag. A balance is never guessed. Dollars at risk (public_upb_at_risk, public_grant_at_risk) are columns computed in plb/units.py, not points."
+    },
+    {
+      "name": "physical_reac_occupancy",
+      "weight": 10,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "floor": 0,
+      "bands": [
+        {"id": "reac_le_30", "event_type": "REAC_SCORE", "signal": null, "match": {"field": "value", "op": "lte", "value": 30}, "points": 10, "reading": "Score 30 or below: automatic referral to HUD's Departmental Enforcement Center (pre-NSPIRE procedure; verify); troubled-asset management with HUD at the table.", "intervention": "covenant_enforcement_notice; enforcement_8823 where LIHTC; recap_committee workout"},
+        {"id": "reac_lt_60", "event_type": "REAC_SCORE", "signal": null, "match": {"field": "value", "op": "between", "value": [31, 60]}, "points": 10, "reading": "Failing inspection: blocks Mark-Up-To-Market renewal and signals a capital-needs backlog the agency may have to fund.", "intervention": "covenant_enforcement_notice; physical-condition-assessment handoff; zero_pct_recap_term_sheet (rehab)"},
+        {"id": "reac_60_79_or_decline_15", "event_type": "REAC_SCORE", "signal": null, "match": {"any": [{"field": "value", "op": "between", "value": [60, 80]}, {"field": "detail", "op": "eq", "value": "decline_ge_15"}]}, "points": 6, "reading": "Passing but marginal, or a 15-point decline: deferred maintenance is accumulating.", "intervention": "servicing_watch; reserve review; physical-condition-assessment handoff"},
+        {"id": "noncompliance_finding_open", "event_type": "NONCOMPLIANCE_FINDING", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 8, "reading": "An open compliance finding or a filed Form 8823 on our monitoring file.", "intervention": "enforcement_8823; covenant_enforcement_notice"},
+        {"id": "dangerous_building", "event_type": "DANGEROUS_BUILDING", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 10, "reading": "On the city's dangerous-building list: life-safety exposure for assisted households.", "intervention": "covenant_enforcement_notice; emergency rehab funding review"},
+        {"id": "tax_foreclosure_list", "event_type": "TAX_FORECLOSURE_LIST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 10, "reading": "A regulated property on the county tax-foreclosure list: the covenant can be extinguished by a tax deed.", "intervention": "covenant_enforcement_notice; recap_committee (cure / payoff decision)"},
+        {"id": "occupancy_drop", "event_type": "OCCUPANCY_DROP", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 6, "reading": "Occupancy under 85% or down 10 points: management or condition problem on an assisted asset.", "intervention": "servicing_watch; management review"},
+        {"id": "tax_exemption_lost", "event_type": "TAX_EXEMPTION_LOST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 6, "reading": "The low-income property-tax exemption dropped off the roll: an ownership change or a compliance lapse we did not see.", "intervention": "covenant_enforcement_notice; confirm ownership (2530 / TPA where HUD)"},
+        {"id": "tax_delinquent_2plus", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "gte", "value": 2}, "points": 6, "reading": "Two or more years of unpaid property tax on a regulated asset.", "intervention": "covenant_enforcement_notice; recap_committee"},
+        {"id": "tax_delinquent_1", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "eq", "value": 1}, "points": 3, "reading": "One year of unpaid property tax.", "intervention": "servicing_watch; ask about the operating deficit"},
+        {"id": "code_case_open", "event_type": "CODE_CASE_OPEN", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 4, "reading": "Open code-enforcement case.", "intervention": "servicing_watch; inspection follow-up"},
+        {"id": "mechanics_or_judgment_lien", "event_type": "MECHANICS_LIEN", "signal": null, "match": {"any": [{"field": "event_present", "op": "eq", "value": "MECHANICS_LIEN"}, {"field": "event_present", "op": "eq", "value": "JUDGMENT_LIEN"}]}, "points": 3, "reading": "A construction or judgment lien has been recorded against a regulated asset.", "intervention": "servicing_watch; title review"},
+        {"id": "mgmt_change", "event_type": "MGMT_CHANGE", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 2, "reading": "Management agent changed.", "intervention": "servicing_watch"}
+      ],
+      "modifiers": [
+        {"id": "recent_rehab", "event_type": null, "signal": "recent_rehab", "match": {"field": "recent_rehab", "op": "eq", "value": true}, "points": -5, "reading": "Rehabilitated within the last five years: physical risk is lower.", "intervention": "none"}
+      ],
+      "notes": "Same events as the buyer rubric, read as troubled-asset asset management rather than a bid discount. recent_rehab (build_context: rehab_year >= as_of_year - 5) lives only here; shared_adjustments has no penalties block. REAC_SCORE from the agency's own file is RECORDED; from the HUD export REPORTED. NSPIRE and legacy UPCS scores are not comparable (detail=protocol)."
+    },
+    {
+      "name": "sponsor_capacity",
+      "weight": 10,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "floor": 0,
+      "bands": [
+        {"id": "mission_sponsor", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "in", "value": ["nonprofit", "lihtc_partnership_nonprofit_gp", "housing_authority", "government"]}, "points": 6, "reading": "Nonprofit, PHA or government sponsor: a partner with the standing to exercise a 42(i)(7) ROFR or recapitalize, and the natural recipient of TA and a NOFA invitation.", "intervention": "ta_sponsor_engagement; preservation_nofa_invitation"},
+        {"id": "self_owned", "event_type": null, "signal": "self_owned", "match": {"field": "self_owned", "op": "eq", "value": true}, "points": 6, "reading": "Our own asset: capacity to act is ours; the levers are repositioning and recapitalization.", "intervention": "pha_repositioning"},
+        {"id": "forprofit_gp_year15", "event_type": null, "signal": "owner_type", "match": {"all": [{"field": "owner_type", "op": "in", "value": ["lihtc_partnership_forprofit_gp", "institutional", "regional_operator", "single_asset_llc"]}, {"field": "lihtc_compliance_end_months_out", "op": "between", "value": [-24, 36], "inclusive": true}]}, "points": 6, "reading": "For-profit or Limited Dividend GP at Year 15: the owner with the most reasons and the fewest obligations to exit; preservation risk, not a buy-side signal.", "intervention": "push_window_prep; rofr_notice_recording where PuSH applies; qc_request_acknowledgement if a QC request arrives"},
+        {"id": "lp_transfer_or_gp_change", "event_type": "MANAGER_CHANGE", "signal": null, "match": {"any": [{"field": "event_present", "op": "eq", "value": "MANAGER_CHANGE"}, {"field": "ownership_changed", "op": "eq", "value": true}, {"field": "lp_transferred_recent", "op": "eq", "value": true}]}, "points": 8, "reading": "The LP interest traded to an aggregator or the GP / manager changed: the Year-15 exit may be contested or accelerated and the nonprofit ROFR challenged.", "intervention": "push_notice_demand_letter readiness; rofr_notice_recording; lihtc-lpa-reviewer handoff (2C); aggregator certification in the QAP"},
+        {"id": "entity_admin_dissolved", "event_type": null, "signal": "event_present", "match": {"field": "event_present", "op": "eq", "value": "ENTITY_ADMIN_DISSOLVED"}, "points": 6, "reading": "The owning entity is administratively dissolved on the SOS registry: a sponsor-capacity failure and a notice-address problem.", "intervention": "covenant_enforcement_notice; confirm notice_address; ta_sponsor_engagement if mission GP"},
+        {"id": "apps_flag", "event_type": null, "signal": "apps_flag", "match": {"field": "apps_flag", "op": "eq", "value": true}, "points": 4, "reading": "HUD 2530 / APPS flag on a controlling participant (24 CFR 200 subpart H, verify): HUD has recorded prior noncompliance.", "intervention": "servicing_watch; request 2530 status from HUD before any recap"},
+        {"id": "rad_or_section_18_in_progress", "event_type": null, "signal": "self_owned", "match": {"all": [{"field": "self_owned", "op": "eq", "value": true}, {"any": [{"field": "event_present", "op": "eq", "value": "RAD_CHAP"}, {"field": "event_present", "op": "eq", "value": "SECTION_18_APPLICATION"}]}]}, "points": 4, "reading": "A RAD CHAP or Section 18 application is in progress on our own asset: repositioning under way, new HAP/PBV events follow.", "intervention": "pha_repositioning"}
+      ],
+      "modifiers": [
+        {"id": "out_of_state_sponsor", "event_type": null, "signal": "out_of_state_sponsor", "match": {"all": [{"field": "out_of_state_sponsor", "op": "eq", "value": true}, {"field": "owner_type", "op": "in", "value": ["lihtc_partnership_forprofit_gp", "institutional"]}]}, "points": 4, "reading": "Out-of-state for-profit sponsor: less tied to local preservation politics (from the servicing extract or SOS worklist only; never automated).", "intervention": "push_window_prep; preservation_nofa_invitation to a local mission sponsor"},
+        {"id": "sponsor_two_plus_cliffs_36mo", "event_type": null, "signal": "sponsor_cliff_count", "match": {"field": "sponsor_cliff_count", "op": "gte", "value": 2}, "points": 4, "reading": "The same sponsor faces two or more cliffs inside 36 months across the universe: capacity is constrained (mission) or the exit is portfolio-wide (for-profit).", "intervention": "ta_sponsor_engagement (portfolio recap) or portfolio notice audit; Sponsor_Exposure tab"},
+        {"id": "registered_agent_change", "event_type": null, "signal": "event_present", "match": {"field": "event_present", "op": "eq", "value": "REGISTERED_AGENT_CHANGE"}, "points": 2, "reading": "Registered agent changed: re-confirm the notice address before any letter.", "intervention": "confirm notice_address (Verify — Notice Address)"}
+      ],
+      "notes": "Both directions add points and nothing subtracts (floor 0): mission sponsors are high-priority partners (TA / NOFA), aggregator or for-profit Year-15 posture is preservation risk (notice audit / ROFR). owner_type unknown scores 0, carries signal owner_type_unknown and goes on the SOS worklist; the brief states the unknown share (443 of 810 OHCS metro rows have a blank Owner Type). No housing-authority cap, no 'not for sale' reading."
+    },
+    {
+      "name": "stacking_geography_equity",
+      "weight": 5,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 5,
+      "floor": 0,
+      "bands": [
+        {"id": "programs_ending_same_24mo_2", "event_type": null, "signal": "programs_ending_same_24mo", "match": {"field": "programs_ending_same_24mo", "op": "eq", "value": 2}, "points": 3, "reading": "Two restrictions end within the same 24 months.", "intervention": "one recapitalization solves both; preservation_nofa_invitation"},
+        {"id": "programs_ending_same_24mo_3plus", "event_type": null, "signal": "programs_ending_same_24mo", "match": {"field": "programs_ending_same_24mo", "op": "gte", "value": 3}, "points": 5, "reading": "Three or more restrictions end together: the property must transact or be recapitalized.", "intervention": "preservation_nofa_invitation; recap_committee when in book"},
+        {"id": "hap_and_extended_use_same_24mo", "event_type": null, "signal": "hap_and_extended_use_same_24mo", "match": {"field": "hap_and_extended_use_same_24mo", "op": "eq", "value": true}, "points": 4, "reading": "HAP and extended-use cliffs coincide: the classic preservation trigger.", "intervention": "optout_response_plan with a recap award"}
+      ],
+      "modifiers": [
+        {"id": "high_displacement_tract", "event_type": null, "signal": "high_displacement_tract", "match": {"field": "high_displacement_tract", "op": "eq", "value": true}, "points": 2, "reading": "In a high-displacement-risk tract per the pack's equity overlay.", "intervention": "board_packet_summary (equity framing)"},
+        {"id": "underserved_district", "event_type": null, "signal": "underserved_district", "match": {"field": "underserved_district", "op": "eq", "value": true}, "points": 2, "reading": "In a district under-served by prior awards per the pack's equity overlay.", "intervention": "board_packet_summary; preservation_nofa_invitation (geographic priority)"}
+      ],
+      "notes": "programs_ending_same_24mo counts REGULATORY-family PRESSURE events whose dates fall within a rolling 24-month window, excluding NOTICE_COMPLIANCE_BREACH and every helper type. Equity overlays come from references/sources/<pack>/equity_overlays.yaml and score 0 when the file is absent; the Assumptions tab says so."
+    }
+  ],
+  "hard_filters": [
+    {"id": "in_development", "condition": "status == In Development", "effect": "queue_band EXCLUDED; exclusion_reason in_development; listed in brief 'Pipeline, not scored' pointing to map-progress-monitor / map-troubled-project-escalator"},
+    {"id": "outside_geography", "condition": "no geo_mode of the run matches", "effect": "queue_band EXCLUDED; exclusion_reason outside_geography"},
+    {"id": "under_5_units_no_program_event", "condition": "units < 5 AND no REGULATORY or DEBT PRESSURE event inside horizon", "effect": "queue_band EXCLUDED; exclusion_reason under_5_units_no_program_event"},
+    {"id": "no_dated_cliff_in_horizon", "condition": "no dated PRESSURE event (owner-side REGULATORY/DEBT, OPERATING, TAX_LIEN, PHYSICAL) inside horizon_years", "effect": "queue_band EXCLUDED; exclusion_reason no_dated_cliff_in_horizon; property still counted in Board_Totals 'beyond horizon' / 'no dated cliff' rows"},
+    {"id": "mandate_eligibility", "scope": "route", "condition": "mandate_fit == ineligible (plb/mandate.py predicate against references/sources/<pack>/mandate.json)", "effect": "route nofa_offer blocked; mandate_ineligible_reason recorded; the lead still scores and routes elsewhere. Never an exclusion reason and never a multiplier."},
+    {"id": "active_bankruptcy", "event_type": "BANKRUPTCY_FILED", "condition": "case active", "effect": "compliance_gates += counsel_only"}
+  ],
+  "routes": {
+    "precedence": ["optout_response", "notice_compliance", "qc_admin", "designee_rofr", "recap_committee", "servicing_watch", "nofa_offer", "ta_sponsor"],
+    "sentinels": ["none", "excluded"],
+    "profile_gates": {
+      "qc_admin": "profile.administers_qc",
+      "designee_rofr": "profile.is_qualified_purchaser or profile.is_designee",
+      "optout_response": "profile.is_pbca or profile.receives_push_notice",
+      "notice_compliance": "profile.receives_push_notice or profile.is_qualified_purchaser (cdbg_home: INSPECTION_DUE / recapture review in place of PuSH enforcement)"
+    },
+    "self_owned_skips": ["notice_compliance", "designee_rofr", "nofa_offer", "ta_sponsor"],
+    "rules": [
+      {"id": "optout_response_notice", "route": "optout_response", "primary": true, "condition": "program in {HAP, RAC, PBV} (never PRAC/PAC) AND PRESERVATION_NOTICE_RECEIVED detail hap_optout", "intervention": "optout_response_plan"},
+      {"id": "optout_response_no_renewal_request", "route": "optout_response", "primary": true, "condition": "program in {HAP, RAC, PBV} AND hap_renewal_request_status == not_received AND HAP_EXPIRATION <= 120 days", "intervention": "optout_response_plan"},
+      {"id": "optout_response_unconfirmed", "route": "optout_response", "primary": true, "condition": "program in {HAP, RAC, PBV} AND HAP_EXPIRATION months_out in [0, 12] AND status != STALE_CONTRACT_DATE AND detail != mahra_20yr_recent AND hap_renewal_request_status == unknown", "intervention": "optout_tenant_notice_check", "first_action": "confirm renewal request / opt-out notice at CA", "agency_act_by": "HAP_OPTOUT_PACKAGE_DUE", "signals_when_notice_deadline_passed": ["optout_notice_deadline_passed_unconfirmed"], "flag_when_notice_deadline_passed": "Verify — CA Log"},
+      {"id": "optout_closed_for_term", "route": null, "primary": false, "condition": "hap_renewal_request_status == received", "effect": "no optout route; signal optout_window_closed_for_term (protective); agency act-by = next_expected_expiration - 12 mo with first_action 'confirm renewal at CA'; kpi hap_renewed"},
+      {"id": "notice_compliance_breach", "route": "notice_compliance", "primary": true, "condition": "NOTICE_COMPLIANCE_BREACH present", "intervention": "push_notice_demand_letter"},
+      {"id": "notice_compliance_due_passed", "route": "notice_compliance", "primary": true, "condition": "notice_window_state in {closed_first_due, closed_second_due} AND notice_status != received", "intervention": "push_notice_demand_letter when not_received_confirmed; push_window_prep (confirm log) when unknown"},
+      {"id": "notice_compliance_tenant", "route": "notice_compliance", "primary": true, "condition": "tenant_notice_status == not_confirmed inside or after TENANT_NOTICE_WINDOW (SB 973 operative per pack date; verify)", "intervention": "tenant_notice_check"},
+      {"id": "notice_compliance_prep", "route": "notice_compliance", "primary": false, "condition": "notice_window_state == open_first AND notice_status != received", "intervention": "push_window_prep", "note": "secondary only; the owner is not late inside the window; never from QC signals"},
+      {"id": "qc_admin_request", "route": "qc_admin", "primary": true, "condition": "QC_ELIGIBILITY status in {requested, lapsed_decontrol} AND basis RECORDED AND qc_waived != true AND profile.administers_qc", "intervention": "qc_request_acknowledgement -> qc_marketing_plan"},
+      {"id": "qc_admin_waived", "route": "qc_admin", "primary": true, "condition": "QC_REQUEST_INELIGIBLE present AND profile.administers_qc", "intervention": "qc_waiver_acknowledgement", "note": "no clock"},
+      {"id": "qc_non_hfa", "route": "ta_sponsor | nofa_offer", "primary": true, "condition": "QC signal AND NOT profile.administers_qc", "intervention": "qc_coordination_with_hfa", "note": "ta_sponsor when a mission sponsor is available, else nofa_offer; never notice_compliance"},
+      {"id": "designee_rofr", "route": "designee_rofr", "primary": true, "condition": "ROFR_RECORDED OR THIRD_PARTY_OFFER_RECEIVED OR (PRESERVATION_NOTICE_RECEIVED detail in {push_first, push_second} AND (profile.is_qualified_purchaser OR profile.is_designee)) OR USDA_PREPAY_REQUEST_RECEIVED OR (NOTICE_COMPLIANCE_BREACH AND profile.is_qualified_purchaser)", "intervention": "rofr_notice_recording / rofr_match_offer / rofr_assignment_memo / usda_prepay_response"},
+      {"id": "recap_committee", "route": "recap_committee", "primary": true, "condition": "universe == our_book AND (intervention_score >= 50 OR COVENANT_DEFAULT OR RECAPTURE_TRIGGER OR REAC_SCORE value < 60 OR RECEIVER_APPOINTED OR BANKRUPTCY_FILED OR JUDICIAL_FORECLOSURE_FILED OR AGENCY_LOAN_MATURITY <= 24 mo OR coterminous_senior_cliff OR (self_owned AND (RAD_CHAP OR SECTION_18_APPLICATION OR owner_cliff_months_out <= 24)))", "intervention": "loan_extension_recast_memo / zero_pct_recap_term_sheet / hud_legacy_response / pha_repositioning"},
+      {"id": "servicing_watch", "route": "servicing_watch", "primary": true, "condition": "universe == our_book AND (any AGENCY_LOAN_MATURITY / AFFORDABILITY_PERIOD_END (ours) / GRANT_RECAPTURE_END / SHARED_APPRECIATION_DUE <= 60 mo OR covenant_status in {watch, default} OR REAC_SCORE value < 60 OR NONCOMPLIANCE_FINDING open OR INSPECTION_DUE <= 6 mo OR senior cliff <= 60 mo)", "intervention": "covenant_enforcement_notice / enforcement_8823 / covenant_recapture_review / prac_renewal_coordination", "note": "a healthy book loan with none of these is primary_route none (Book_Watchlist, AM status Monitoring)"},
+      {"id": "nofa_offer", "route": "nofa_offer", "primary": true, "condition": "(universe == universe_not_held OR (universe == our_book AND recap_status in {announced, under_application})) AND REGULATORY/DEBT owner cliff <= 60 mo AND mandate_fit in {eligible, no_mandate_file}", "intervention": "preservation_nofa_invitation", "note": "no_mandate_file adds signal mandate_unknown"},
+      {"id": "ta_sponsor", "route": "ta_sponsor", "primary": true, "condition": "owner_type in {nonprofit, lihtc_partnership_nonprofit_gp, housing_authority, government} AND NOT self_owned AND (LIHTC_COMPLIANCE_END OR LIHTC_EXTENDED_USE_END OR ROFR_RECORDED OR QC signal (non-hfa)) <= 60 mo", "intervention": "ta_sponsor_engagement"},
+      {"id": "counsel_only", "route": null, "primary": false, "event_type": "BANKRUPTCY_FILED", "condition": "case active", "effect": "compliance_gates += counsel_only"},
+      {"id": "tenant_data_gate", "route": null, "primary": false, "condition": "any tenant-level data used", "effect": "compliance_gates += fair_housing_tenant_data"}
+    ],
+    "primary_rule": "Evaluate every rule; primary_route = the matched route earliest in `precedence`, filtered by the profile gate and self_owned_skips; every other matched route goes to secondary_routes. A scored lead with has_pressure_in_horizon and no rule hit is primary_route none. next_action = the primary intervention's first_action + agency_action_date."
+  },
+  "quality_rules": [
+    "Exclude Status == In Development (exclusion_reason in_development).",
+    "A/B/C never appear in any output; queue_band ESCALATE / ACT / PLAN / WATCH / EXCLUDED only.",
+    "Proxy-only governing events -> queue cap PLAN (shared_adjustments.caps.proxy_only).",
+    "No dated PRESSURE event inside horizon -> EXCLUDED no_dated_cliff_in_horizon, still counted in Board_Totals.",
+    "SOFT_PROGRAM_END / AFFORDABILITY_PERIOD_END are affordability-period ends, not note maturities; a soft-loan balloon scores only as AGENCY_LOAN_MATURITY (ours, RECORDED) or SOFT_LOAN_MATURITY (recorded).",
+    "HAP expiration dates under annual renewal roll forward each year; a past HUD date with no termination evidence is STALE_CONTRACT_DATE, never OVERDUE in Board_Totals and never `lost`.",
+    "PuSH windows and PUSH_*_DUE anchor on withdrawal_anchor_date (restriction-type ends; HAP/PRAC only with a non-renewal signal); a HAP-only property with an annual date eight months out emits no PuSH window and no breach.",
+    "No demand or records letter is generated before the statutory trigger it cites (records request follows the owner's notice by 10 days; demand letter follows PUSH_FIRST_NOTICE_DUE with not_received_confirmed).",
+    "qc_admin fires only on a RECORDED QC request with qc_waived != true and only when the profile administers QC.",
+    "Mandate eligibility is a route-level hard filter on nofa_offer; never an exclusion, never a multiplier.",
+    "recap_status under_application/closed with RECORDED/REPORTED evidence halves restriction_hap_qc_clock and declared_intent_vs_silence only.",
+    "Nothing in sponsor_capacity subtracts; no owner type is capped or routed as a non-event.",
+    "Default outputs are organization level (am_officer included, no contact detail); no owner phone or personal email anywhere."
+  ]
+}

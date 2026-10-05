@@ -1,0 +1,15 @@
+{
+  "_schema": "LIHTC maximum rents by AMI band for restricted NOI used only to size a recast or 0% recap gap on our_book rows. PLACEHOLDER: every rent is null until the user pastes the current HUD/OHCS limits; while null, est_restricted_noi is blank and the lead carries 'Missing Source — Request Document' (rent roll from the agency file); there is no market $/unit fallback. Populate from the <state HFA> rent-limits page (MTSP limits, <metro FMR area>) and record as_of and source.",
+  "as_of": null,
+  "source": "<state HFA> MTSP income and rent limits for <metro FMR area>; URL to be confirmed",
+  "verify": true,
+  "verified_live": false,
+  "unit_mix_assumption": "rents are blended across bedroom sizes; when the property's unit mix is known, replace with a weighted figure per band",
+  "max_rents_by_ami": {"30": null, "40": null, "50": null, "60": null, "80": null},
+  "hap_contract_rent_default": null,
+  "notes": [
+    "Gross rent limits include a utility allowance; net the allowance before using as collectable rent.",
+    "HOME and OAHTC rents can be lower than the LIHTC limit for the same AMI band; use the binding restriction.",
+    "Market-rate units in a mixed property are descriptive only; no market rent is applied."
+  ]
+}

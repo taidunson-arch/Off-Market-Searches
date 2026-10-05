@@ -1,0 +1,155 @@
+# Dataset schemas for the oregon-portland market pack.
+# Parsed by scripts/omdf/schema.py. Declared date formats win: a column declared here is
+# never re-tested row by row. Add a dataset by copying a block and declaring every date column;
+# an undeclared date column makes the adapter stop with "No Format Declared" and the user runs
+# scripts/date_profile.py to propose a format.
+#
+# Verified against Oregon_Affordable_Housing_Inventory_20261002.csv (1,819 rows): Financial_Closing_Date
+# is day-first (222 values with first field > 12, zero with second field > 12); every other slash
+# column is month-first (e.g. LATEST 0 vs 764); USDA_RD_Expiration_Date is '2038 Nov 17 12:00:00 AM'.
+# Rehab Year is stored as '2,021'-style strings in 99 rows; the `numeric` block strips the comma.
+#
+# Blocks marked `verified_live: false` describe files no researcher opened in this build: their
+# match_columns and field names come from layout snippets and must be confirmed from the live header.
+
+ohcs_affordable_housing_inventory:
+  match_columns: ["Property Name", "LATEST_Expiration_Date", "Financial_Closing_Date"]
+  encoding: utf-8-sig
+  key: ["Property Name", "Address"]
+  verified_live: true   # file on disk, pattern-tested; the data.oregon.gov page itself was not fetched
+  dates:
+    Financial_Closing_Date:     {format: "%d/%m/%Y", basis: REPORTED}
+    Compliance_Start_Date:      {format: "%m/%d/%Y", basis: REPORTED}
+    LIHTC_4_Expiration_Date:    {format: "%m/%d/%Y", basis: REPORTED, event: LIHTC_EXTENDED_USE_END, program: LIHTC_4}
+    LIHTC_9_Expiration_Date:    {format: "%m/%d/%Y", basis: REPORTED, event: LIHTC_EXTENDED_USE_END, program: LIHTC_9}
+    HOME_Expiration_Date:       {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: HOME}
+    OAHTC_Expiration_Date:      {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: OAHTC}
+    GHAP_Expiration_Date:       {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: GHAP}
+    HDGP_Expiration_Date:       {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: HDGP}
+    LIFT_Expiration_Date:       {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: LIFT}
+    HTF_Expiration_Date:        {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: HTF}
+    Other_OHCS_Expiration_Date: {format: "%m/%d/%Y", basis: REPORTED, event: SOFT_PROGRAM_END, program: OTHER_OHCS}
+    HUD_MF_Expiration_Date:     {format: "%m/%d/%Y", basis: REPORTED, event: HAP_EXPIRATION, confidence: 0.70}
+    USDA_RD_Expiration_Date:    {format: "%Y %b %d %I:%M:%S %p", basis: REPORTED, event: USDA_515_MATURITY}
+    LATEST_Expiration_Date:     {format: "%m/%d/%Y", basis: REPORTED, event: REGULATORY_LATEST_END, recompute_if_blank: max_of_components}
+  derived_events:
+    LIHTC_COMPLIANCE_END:        {from: Compliance_Start_Date, add_years: 15, basis: DERIVED, window_months: 12}
+    LOAN_MATURITY:               {from: Financial_Closing_Date, add_years: 15, add_years_if_program: {LIHTC_4: 17}, basis: PROXY, window_months: 36, derivation: "Financial_Closing_Date + 15y mini-perm (17y 4% bond)"}
+    # Oregon PuSH first-notice window on the latest regulatory end. Statutory windows from OAR 813-115 snippets
+    # (ORS 456.260 text not read in this build); gated on 5+ units and a PuSH-covered program (ORS 456.250).
+    PRESERVATION_NOTICE_WINDOW:  {from: LATEST_Expiration_Date, window_months_before: [36, 30], basis: DERIVED, min_units: 5, require_programs: push_covered, derivation: "REGULATORY_LATEST_END - 36..30 months (OAR 813-115 first notice; statute text unverified)"}
+  validations:
+    - {rule: month_le_12, on_fail: "Rejected — Out of Range"}
+    - {rule: latest_equals_max_components, whitelist: ["Casa Sonada 4", "Riverside Terrace"], on_fail: "Verify — Conflicting Sources"}
+    - {rule: expiration_ge_compliance_start, when_both_present: true, on_fail: "Verify — Conflicting Sources"}
+    - {rule: compliance_start_within_months_after_closing, months: 36, when_both_present: true, on_fail: "Verify — Conflicting Sources"}
+  normalize:
+    County: title_case
+    City: {title_case: true, typo_map: {Portalnd: Portland}}
+    "Owner Type": {title_case: true, map: {Profit: For-Profit, "Non-profit": Non-Profit, Government: Government}, blank: infer_from_owner_name}
+    "Property Type": {drop_values: ["0", "ERROR: #N/A"]}
+  numeric:
+    # strip thousands separators and cast to int when integral ('2,021' -> 2021; '35.0' -> 35)
+    int_columns: ["Rehab Year", "Year Built", "Total Units", "Total_30_AMI_Units", "Total_40_AMI_Units", "Total_50_AMI_Units",
+                  "Total_60_AMI_Units", "Total_80_AMI_Units", "Market_Rate_Units", "Rental_Assistance_Count"]
+  filters:
+    exclude: {Status: ["In Development"]}
+  value_proxy:
+    # applied when no rent data is available: units x pack price_per_unit_avg, value_source ppu_band, flagged
+    # "Missing Source — Request Document" (rent roll). rent-limits.json with populated max rents switches to
+    # restricted_income_proxy (restricted_noi / cap_rate_affordable).
+    fallback: ppu_band
+    rent_limits_file: rent-limits.json
+  county_fips: {Multnomah: "41051", Washington: "41067", Clackamas: "41005", Columbia: "41009", Yamhill: "41071"}
+
+hud_fhasl_active:
+  match_columns: ["HUD Project Number", "Maturity Date", "Section of the Act"]
+  verified_live: false
+  dates: {"Initial Endorsement Date": {format: excel_date}, "Final Endorsement Date": {format: excel_date}, "Maturity Date": {format: excel_date, basis: RECORDED, event: LOAN_MATURITY}}
+  derived_events: {PREPAY_WINDOW_OPEN: {from: "Final Endorsement Date", add_years: 10, basis: DERIVED, window_months: 6}}
+  soa_affordable_codes: ["236", "221(d)(3)", "202", "811", "542"]
+
+hud_mf_assistance_sec8:
+  match_columns: ["property_id", "tracs_overall_expiration_date"]
+  verified_live: false
+  dates: {tracs_effective_date: {format: excel_date}, tracs_overall_expiration_date: {format: excel_date, basis: REPORTED, event: HAP_EXPIRATION, confidence: 0.70}}
+
+ohcs_push_forecast:
+  # OHCS "Affordable Housing 10-Year Expiration Forecast" (data.oregon.gov; PuSH dashboard source). Field names
+  # are GUESSES from the dataset description (never opened in this build); normalize_ohcs_forecast.py matches
+  # them through an alias table and names every missing field. Run date_profile.py on the real export first.
+  match_columns: ["Property Name", "Preservation Status"]
+  verified_live: false
+  key: ["Property Name", "Address"]
+  dates:
+    "Expiration Date": {format: "%m/%d/%Y", basis: REPORTED, event: REGULATORY_LATEST_END}
+    "Notice Date":     {format: "%m/%d/%Y", basis: RECORDED, event: PRESERVATION_NOTICE_RECEIVED}
+  status_map:
+    # preservation-status values that mean the owner has declared intent (RECORDED PRESERVATION_NOTICE_RECEIVED)
+    notice_received: ["Notice Received", "First Notice Received", "Second Notice Received", "Owner Intends to Exit", "Opt-Out Notice", "Notice of Intent"]
+    first_notice: ["First Notice Received", "Notice of Intent"]
+    second_notice: ["Second Notice Received"]
+    at_risk: ["At Risk", "Monitoring", "Expiring"]
+    preserved: ["Preserved", "Extended", "Resyndicated", "Stabilized"]
+  signals: {on_state_expiring_list: true}
+
+recorder_index_export:
+  # Generic recorder-index extract (MultcoRecords, Washington Co., Clackamas, Clark WA Landmark Web export or a
+  # hand-built CSV). Columns are the adapter's canonical names; use date_profile.py and rename before dropping.
+  match_columns: ["instrument_no", "doc_type", "recording_date", "grantor", "grantee"]
+  verified_live: false
+  optional_columns: ["parcel_id", "address", "city", "zip", "county_fips", "state", "stated_principal", "maturity_date", "sale_date", "sum_owing", "units", "reference_instrument_no"]
+  dates:
+    recording_date: {format: "%Y-%m-%d", basis: RECORDED}
+    maturity_date:  {format: "%Y-%m-%d", basis: RECORDED, event: LOAN_MATURITY}
+    sale_date:      {format: "%Y-%m-%d", basis: RECORDED}
+  doc_type_map:
+    # lower-cased substring -> event_type (first match wins, in this order)
+    - {contains: "rescission", event: NOD_RESCISSION}
+    - {contains: "trustee's deed", event: TRUSTEES_DEED}
+    - {contains: "trustees deed", event: TRUSTEES_DEED}
+    - {contains: "notice of default", event: NOD_RECORDED}
+    - {contains: "election to sell", event: NOD_RECORDED}
+    - {contains: "notice of trustee's sale", event: NOTS_RECORDED}
+    - {contains: "notice of trustee sale", event: NOTS_RECORDED}
+    - {contains: "successor trustee", event: SUCCESSOR_TRUSTEE_APPOINTED}
+    - {contains: "substitution of trustee", event: SUCCESSOR_TRUSTEE_APPOINTED}
+    - {contains: "certificate of compliance", event: OFAP_CERT_RECORDED}
+    - {contains: "exemption affidavit", event: OFAP_CERT_RECORDED}
+    - {contains: "lis pendens", event: LIS_PENDENS}
+    - {contains: "notice of pendency", event: LIS_PENDENS}
+    - {contains: "claim of lien", event: MECHANICS_LIEN}
+    - {contains: "construction lien", event: MECHANICS_LIEN}
+    - {contains: "right of first refusal", event: ROFR_RECORDED}
+    - {contains: "modification", event: LOAN_MODIFIED}
+    - {contains: "extension", event: LOAN_MODIFIED}
+    - {contains: "reconveyance", event: RECONVEYANCE}
+    - {contains: "release of deed of trust", event: RECONVEYANCE}
+    - {contains: "home equity conversion", event: HECM_ON_RECORD}
+    - {contains: "deferral", event: DOR_DEFERRAL_LIEN}
+    - {contains: "line of credit", event: TRUST_DEED}
+    - {contains: "deed of trust", event: TRUST_DEED}
+    - {contains: "trust deed", event: TRUST_DEED}
+  refinance_window_days: 90
+  lender_dictionary: ../../../assets/lender_type_dictionary.csv
+
+assessor_taxlots:
+  # SAIL (Multnomah) / Metro RLIS taxlot field names, from a third-party query tool; confirm on first pull.
+  match_columns: ["NAME", "ADDR1", "SITUSADDR", "DEED_DATE"]
+  verified_live: false
+  optional_columns: ["PROPID", "MAPTAXLOT", "NAME2", "CITY", "STATE", "ZIP", "SITUSCITY", "SITUSZIP", "COUNTY", "PROPCLASS", "UNITS", "ACTYEARBUILT", "SALE_DATE", "SALE_PRICE", "INST_NUM", "EXEMPTION", "ROLLLAND", "ROLLIMP", "ROLLM50", "DELQ_YEARS"]
+  dates:
+    DEED_DATE: {format: "%Y-%m-%d", basis: RECORDED}
+    SALE_DATE: {format: "%Y-%m-%d", basis: RECORDED}
+  numeric:
+    int_columns: ["UNITS", "ACTYEARBUILT", "DELQ_YEARS"]
+    float_columns: ["SALE_PRICE", "ROLLLAND", "ROLLIMP", "ROLLM50"]
+  derived:
+    HOLD_YEARS: {from: DEED_DATE, basis: RECORDED}
+    DEPRECIATION_EXHAUSTED: {when: "hold_years >= 27.5", basis: RECORDED}
+    RECENT_1031_ACQUISITION: {when: "hold_years < 3", basis: RECORDED, note: "exchange language not visible in the roll; treat as hold < 3y suppression only"}
+    ABSENTEE_TIER: {compare: ["ADDR1+CITY+STATE+ZIP", "SITUSADDR+SITUSCITY+SITUSZIP"], tiers: [occupant, local, in_state, out_of_state, far], basis: RECORDED}
+    TAX_DELINQUENT_YEARS: {from: DELQ_YEARS, basis: RECORDED}
+    av_rmv_ratio: "ROLLM50 / (ROLLLAND + ROLLIMP)"
+    est_value: {formula: "(ROLLLAND + ROLLIMP) x sales_ratio", value_source: rmv_calibrated, sales_ratio_param: rmv_sales_ratio}
+  default_county_fips: "41051"

@@ -1,0 +1,169 @@
+{
+  "_schema": "off-market-deal-finder class scoring v2.0. See references/pipeline-contract.md Section 11 for the band schema and references/scoring/shared_adjustments.json for multipliers, tiers, caps and suppressions. Weights sum to 100.",
+  "class": "affordable_regulated",
+  "version": "2.0",
+  "total_weight": 100,
+  "factors": [
+    {
+      "name": "regulatory_event_timing",
+      "weight": 25,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 25,
+      "bands": [
+        {"id": "extended_use_le_36", "event_type": "LIHTC_EXTENDED_USE_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 25, "reading": "Year 30 cliff: restrictions end, conversion or preservation sale is being negotiated now; Oregon PuSH notices are due in this window.", "lever": "Preservation purchaser or conversion buyer; position before the first notice."},
+        {"id": "extended_use_36_60", "event_type": "LIHTC_EXTENDED_USE_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 15, "reading": "Cliff visible; owner choosing between resyndication and exit.", "lever": "Early relationship; model both paths."},
+        {"id": "year15_forprofit", "event_type": "LIHTC_COMPLIANCE_END", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [12, 36]}, {"field": "owner_type", "op": "eq", "value": "lihtc_partnership_forprofit_gp"}]}, "points": 20, "reading": "Syndicator LP exiting; for-profit GP negotiating buyout, resyndication or third-party sale.", "lever": "GP letter plus LP courtesy call; fund the LP exit."},
+        {"id": "year15_nonprofit_or_pha", "event_type": "LIHTC_COMPLIANCE_END", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [12, 36]}, {"field": "owner_type", "op": "in", "value": ["lihtc_partnership_nonprofit_gp", "nonprofit", "housing_authority", "government"]}]}, "points": 0, "reading": "Nonprofit GP will exercise the §42(i)(7) ROFR at minimum price; the asset is not for sale to a third party.", "lever": "Route partnership_preservation: recap or JV partner."},
+        {"id": "year15_past_24_no_transfer", "event_type": "LIHTC_COMPLIANCE_END", "signal": null, "match": {"all": [{"field": "months_out", "op": "lt", "value": -24}, {"field": "ownership_changed_since_year15", "op": "eq", "value": false}]}, "points": 10, "reading": "Stalled Year-15 exit; LP interests may have traded to an aggregator.", "lever": "Ask who holds the LP interest."},
+        {"id": "hap_le_24", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 24]}, "points": 15, "reading": "Renewal decision point; owner weighs MAHRA renewal, Mark-Up-to-Market or opt-out with 1-year tenant notice.", "lever": "Renewal-with-sale or preservation purchase."},
+        {"id": "hud_direct_le_36", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 20, "reading": "236 / 221(d)(3) / 202 maturity ends the use agreement unless decoupled or refinanced.", "lever": "RAD / Section 8 preservation tools; recapitalization partner."},
+        {"id": "usda_le_36", "event_type": "USDA_515_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 20, "reading": "515 maturity ends interest credit and RA; owner exits or transfers with RD financing.", "lever": "MPR transfer or preservation purchase."},
+        {"id": "usda_exit_le_36", "event_type": "USDA_EXIT_PROJECTED", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 20, "reading": "USDA projects program exit within 3 years.", "lever": "As above; confirm with RD state office."},
+        {"id": "usda_36_60", "event_type": "USDA_515_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 10, "reading": "515 maturity on the horizon.", "lever": "Monitor; semiannual data refresh."},
+        {"id": "soft_program_end_le_36", "event_type": "SOFT_PROGRAM_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 8, "reading": "HOME/OAHTC/state affordability period ending; rent limits lift on those units, OAHTC pass-through rate ends.", "lever": "Corroborating; stack with other programs (see regulatory_stacking)."},
+        {"id": "latest_end_le_36", "event_type": "REGULATORY_LATEST_END", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 12, "reading": "Last known restriction ends within 3 years.", "lever": "Confirm which agreement is last; request LURA."}
+      ],
+      "modifiers": [
+        {"id": "hap_short_renewal_forprofit", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"all": [{"field": "detail", "op": "eq", "value": "short_renewal_pattern"}, {"field": "owner_type", "op": "in", "value": ["lihtc_partnership_forprofit_gp", "single_asset_llc", "regional_operator", "institutional"]}]}, "points": 5, "reading": "Repeated 1-5 year renewals by a for-profit owner: keeping options open.", "lever": "Opt-out economics vs preservation sale."},
+        {"id": "hap_fresh_mahra_20", "event_type": "HAP_EXPIRATION", "signal": null, "match": {"field": "detail", "op": "eq", "value": "mahra_20yr_recent"}, "points": -5, "reading": "Just signed a 20-year renewal; staying in the program.", "lever": "Recap partner only."},
+        {"id": "hud_236_irp", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "detail", "op": "eq", "value": "236_irp"}, "points": 5, "reading": "IRP expires with the loan; decoupling or prepayment decision.", "lever": "Decoupling-aware recap."},
+        {"id": "hud_no_hap_overlay", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "detail", "op": "eq", "value": "no_hap_overlay"}, "points": 5, "reading": "Fewer preservation strings after maturity.", "lever": "Conversion risk is real; preservation buyer has leverage with HUD."},
+        {"id": "usda_prepay_eligible", "event_type": "USDA_515_PREPAY_ELIGIBLE", "signal": null, "match": {"field": "months_out", "op": "lte", "value": 0}, "points": 5, "reading": "Owner may prepay now with 180-day notice and tenant protections.", "lever": "Preservation purchase before prepayment."}
+      ],
+      "notes": "Take max of bands, add modifiers, cap 25, then basis multiplier. HAP_EXPIRATION carries confidence 0.70 when annually renewing (apply as an additional multiplier on this band only). LIFT / 60-year REUA with extended use > 30 years out scores 0 here (shared_adjustments.caps.lift_60yr)."
+    },
+    {
+      "name": "declared_intent_and_notice",
+      "weight": 20,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 20,
+      "bands": [
+        {"id": "push_notice_received", "event_type": "PRESERVATION_NOTICE_RECEIVED", "signal": null, "match": {"field": "detail", "op": "in", "value": ["push_first", "push_second"]}, "points": 20, "reading": "Owner has formally told OHCS and the city the restrictions will end; qualified purchasers now hold statutory rights.", "lever": "Strongest affordable signal; position as or with a qualified purchaser."},
+        {"id": "hap_optout_notice", "event_type": "PRESERVATION_NOTICE_RECEIVED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "hap_optout"}, "points": 20, "reading": "Section 8 opt-out notice on file with the PBCA / HUD; tenants get enhanced vouchers.", "lever": "Preservation purchase that keeps the HAP."},
+        {"id": "qc_lapsed_decontrol", "event_type": "QC_ELIGIBILITY", "signal": null, "match": {"field": "status", "op": "eq", "value": "lapsed_decontrol"}, "points": 20, "reading": "Agency failed to present a qualified contract; 3-year decontrol is running.", "lever": "Conversion buyer or last-chance preservation."},
+        {"id": "qc_requested", "event_type": "QC_ELIGIBILITY", "signal": null, "match": {"field": "status", "op": "eq", "value": "requested"}, "points": 17, "reading": "Owner has asked the agency for a qualified contract; one-year clock.", "lever": "You can be the qualified-contract buyer."},
+        {"id": "rofr_recorded", "event_type": "ROFR_RECORDED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 15, "reading": "A qualified purchaser has recorded its right to match any third-party offer within 30 days.", "lever": "rofr_encumbered: designee / JV strategy, not a direct offer."},
+        {"id": "qc_eligible_no_waiver", "event_type": "QC_ELIGIBILITY", "signal": null, "match": {"field": "status", "op": "eq", "value": "eligible"}, "points": 8, "reading": "Pre-waiver vintage past year 14 with no waiver in the REUA; the owner holds a conversion lever.", "lever": "Ask whether a QC request is contemplated."},
+        {"id": "on_state_list_no_notice", "event_type": null, "signal": "on_state_expiring_list", "match": {"all": [{"field": "on_state_expiring_list", "op": "eq", "value": true}, {"field": "first_reg_months_out", "op": "lte", "value": 60}]}, "points": 6, "reading": "On the OHCS 10-year forecast but no notice yet.", "lever": "Watch for the status flip."}
+      ],
+      "modifiers": [
+        {"id": "push_window_open", "event_type": null, "signal": "push_window_open", "match": {"field": "push_window_open", "op": "eq", "value": true}, "points": 4, "reading": "The Oregon PuSH first-notice window (36-30 months before the last restriction ends; OAR 813-115 snippets, statute text unverified) is open as of the run date: if the owner intends to exit, the notice is due now.", "lever": "File a records request with the PuSH-CP Program Manager and the affected city for any notice received; a confirmed notice upgrades this to PRESERVATION_NOTICE_RECEIVED (20)."}
+      ],
+      "notes": "push_window_open is additive (cap 20) so a property inside its statutory notice window ranks above an otherwise identical one outside it; it is derived from PRESERVATION_NOTICE_WINDOW window_start <= as_of <= window_end and emitted only for 5+ unit properties with a PuSH-covered program."
+    },
+    {
+      "name": "capital_stack_pressure",
+      "weight": 15,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 15,
+      "bands": [
+        {"id": "maturity_le_36", "event_type": "LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 12, "reading": "HUD / USDA / agency / CMBS / recorded first mortgage matures within 3 years.", "lever": "Recap or sale; assumable HUD debt is a buyer edge."},
+        {"id": "maturity_36_60", "event_type": "LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 6, "reading": "Maturity inside the 5-year horizon.", "lever": "Monitor; align with regulatory dates."},
+        {"id": "hud_direct_le_36_debt", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 12, "reading": "Debt leg of the 236/202 maturity (regulatory leg scored above).", "lever": "As above."},
+        {"id": "usda_le_36_debt", "event_type": "USDA_515_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 36]}, "points": 12, "reading": "Debt leg of the 515 maturity.", "lever": "As above."}
+      ],
+      "modifiers": [
+        {"id": "refi_gap_gt_25_restricted", "event_type": null, "signal": "refi_gap_pct", "match": {"field": "refi_gap_pct", "op": "gt", "value": 0.25}, "points": 5, "reading": "Restricted NOI cannot carry the balance at today's rates.", "lever": "Soft-debt resubordination or new equity is required; be the equity."},
+        {"id": "refi_gap_10_25_restricted", "event_type": null, "signal": "refi_gap_pct", "match": {"field": "refi_gap_pct", "op": "between", "value": [0.1, 0.25], "inclusive": true}, "points": 3, "reading": "Partial gap under restricted rents.", "lever": "Model the resyndication."},
+        {"id": "soft_loan_coterminous", "event_type": "SOFT_LOAN_MATURITY", "signal": null, "match": {"field": "detail", "op": "eq", "value": "coterminous_with_first"}, "points": 3, "reading": "Recorded soft loan balloons with the first mortgage: stacked balloon.", "lever": "Soft lender consent is part of the deal."},
+        {"id": "prepay_window_le_12", "event_type": "PREPAY_WINDOW_OPEN", "signal": null, "match": {"field": "months_out", "op": "between", "value": [-6, 12]}, "points": 3, "reading": "223(f)/221(d)(4) penalty step-down ending (endorsement + 10y).", "lever": "Sale or refi becomes economic."}
+      ],
+      "notes": "A PROXY LOAN_MATURITY (Financial_Closing_Date + 15y mini-perm) scores through the same bands; the 0.30 basis multiplier is the only penalty. No extra rule."
+    },
+    {
+      "name": "regulatory_stacking",
+      "weight": 10,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "bands": [
+        {"id": "programs_2_same_24mo", "event_type": null, "signal": "programs_ending_same_24mo", "match": {"field": "programs_ending_same_24mo", "op": "eq", "value": 2}, "points": 6, "reading": "Two regulatory agreements end within the same 24 months.", "lever": "One recapitalization solves both."},
+        {"id": "programs_3plus_same_24mo", "event_type": null, "signal": "programs_ending_same_24mo", "match": {"field": "programs_ending_same_24mo", "op": "gte", "value": 3}, "points": 10, "reading": "Three or more agreements end together: stacked balloon of restrictions.", "lever": "The owner must transact; be first."}
+      ],
+      "modifiers": [
+        {"id": "hap_and_extended_use_same_24", "event_type": null, "signal": "hap_and_extended_use_same_24mo", "match": {"field": "hap_and_extended_use_same_24mo", "op": "eq", "value": true}, "points": 4, "reading": "HAP and extended-use cliffs coincide: the classic preservation-sale trigger.", "lever": "Preservation purchase with HAP renewal."}
+      ],
+      "notes": "Counts REGULATORY-family events (SOFT_PROGRAM_END per program, HAP_EXPIRATION, LIHTC_EXTENDED_USE_END, HUD/USDA regulatory legs) whose dates fall within a rolling 24-month window. Cap 10."
+    },
+    {
+      "name": "owner_sponsor_profile",
+      "weight": 15,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 15,
+      "floor": 0,
+      "bands": [
+        {"id": "forprofit_gp", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "in", "value": ["lihtc_partnership_forprofit_gp", "single_asset_llc", "regional_operator", "institutional"]}, "points": 10, "reading": "For-profit or Limited Dividend GP: sells at Year 15/30 when the math works.", "lever": "Acquisition track."},
+        {"id": "nonprofit_gp", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "in", "value": ["lihtc_partnership_nonprofit_gp", "nonprofit"]}, "points": 0, "reading": "Mission owner; exercises ROFR or recapitalizes.", "lever": "partnership_preservation route; +5 motivation on that track only."},
+        {"id": "housing_authority_gov", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "in", "value": ["housing_authority", "government"]}, "points": -20, "reading": "Rarely sells; RAD or conversion partner at most.", "lever": "partnership_preservation; tier cap B."}
+      ],
+      "modifiers": [
+        {"id": "lp_transfer_or_gp_change", "event_type": "MANAGER_CHANGE", "signal": null, "match": {"any": [{"field": "event_present", "op": "eq", "value": "MANAGER_CHANGE"}, {"field": "event_present", "op": "eq", "value": "REGISTERED_AGENT_CHANGE"}, {"field": "lp_transferred_recent", "op": "eq", "value": true}]}, "points": 8, "reading": "LP interest traded to an aggregator or GP changed; contested or accelerated exit.", "lever": "Find out who now controls the LP vote."},
+        {"id": "sponsor_portfolio_year15_30", "event_type": null, "signal": "sponsor_other_properties_hitting_y15_30_36mo", "match": {"field": "sponsor_other_properties_hitting_y15_30_36mo", "op": "gte", "value": 2}, "points": 6, "reading": "Sponsor faces several Year 15/30 events at once; capacity constrained.", "lever": "Portfolio conversation."},
+        {"id": "out_of_state_sponsor", "event_type": "ABSENTEE_TIER", "signal": null, "match": {"field": "value", "op": "in", "value": ["out_of_state", "far"]}, "points": 4, "reading": "Out-of-state sponsor less tied to Oregon preservation politics.", "lever": "Exit-the-market framing."},
+        {"id": "m2m", "event_type": null, "signal": "m2m_portfolio", "match": {"field": "m2m_portfolio", "op": "eq", "value": true}, "points": 3, "reading": "Mark-to-Market restructure with HUD-held notes: complex but motivated.", "lever": "Note assignment/forgiveness in a preservation sale."}
+      ],
+      "notes": "Cap 15, floor 0 after the housing-authority penalty (the route change carries the real effect)."
+    },
+    {
+      "name": "operating_distress",
+      "weight": 10,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "bands": [
+        {"id": "reac_le_30", "event_type": "REAC_SCORE", "signal": null, "match": {"field": "value", "op": "lte", "value": 30}, "points": 10, "reading": "Automatic referral to the Departmental Enforcement Center.", "lever": "HUD-aware recapitalization."},
+        {"id": "tax_foreclosure_list", "event_type": "TAX_FORECLOSURE_LIST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 10, "reading": "Regulated apartment on the ORS 312 list: severe.", "lever": "Payoff at closing."},
+        {"id": "reac_lt_60", "event_type": "REAC_SCORE", "signal": null, "match": {"field": "value", "op": "between", "value": [31, 60]}, "points": 7, "reading": "Failed inspection; capital-needs backlog, owner fatigue.", "lever": "Capex partner."},
+        {"id": "tax_1_2y", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "between", "value": [1, 3]}, "points": 7, "reading": "Taxes unpaid on a regulated asset: operating distress.", "lever": "Ask about the operating deficit."},
+        {"id": "exemption_lost", "event_type": "TAX_EXEMPTION_LOST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 6, "reading": "Nonprofit low-income exemption dropped: ownership change or compliance failure.", "lever": "Early conversion signal."},
+        {"id": "stabilization_award", "event_type": "STABILIZATION_AWARD", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 6, "reading": "OHCS already classified the asset as at risk.", "lever": "Preservation partner with capital."},
+        {"id": "reac_decline_15", "event_type": "REAC_SCORE", "signal": null, "match": {"field": "detail", "op": "eq", "value": "decline_ge_15"}, "points": 5, "reading": "Steep decline even if passing.", "lever": "Deferred maintenance conversation."},
+        {"id": "occupancy_drop", "event_type": "OCCUPANCY_DROP", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 4, "reading": "Occupancy under 85% or down 10 points.", "lever": "Management or capex issue."}
+      ],
+      "modifiers": [],
+      "notes": "NSPIRE (from 7/1/2023) and legacy UPCS scores are not directly comparable; use detail=protocol when trending. LIHTC-only properties are inspected by the HFA and those scores are not public."
+    },
+    {
+      "name": "signal_stacking",
+      "weight": 5,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 5,
+      "bands": [
+        {"id": "families_2", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "eq", "value": 2}, "points": 3, "reading": "Two independent families.", "lever": "Lead with the dated event."},
+        {"id": "families_3plus", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "gte", "value": 3}, "points": 5, "reading": "Regulatory, debt and operating signals converge.", "lever": "Top priority on the relevant track."}
+      ],
+      "modifiers": []
+    }
+  ],
+  "hard_filters": [
+    {"id": "in_development", "condition": "status == In Development", "effect": "excluded"},
+    {"id": "active_listing", "condition": "on_market == true", "effect": "excluded"},
+    {"id": "active_bankruptcy", "event_type": "BANKRUPTCY_FILED", "condition": "case active", "effect": "compliance_gates += counsel_only"}
+  ],
+  "routes": [
+    {"id": "nonprofit_rofr_prac", "condition": "owner_type in [lihtc_partnership_nonprofit_gp, nonprofit] AND (ROFR_RECORDED OR PRAC)", "route": "partnership_preservation"},
+    {"id": "housing_authority", "condition": "owner_type in [housing_authority, government]", "route": "partnership_preservation", "tier_cap": "B"},
+    {"id": "rofr_recorded", "event_type": "ROFR_RECORDED", "effect": "signals += rofr_encumbered; route partnership_preservation"},
+    {"id": "assumable_hud", "condition": "lender_type == hud_fha AND rate_spread_bp > 150", "effect": "signals += assumption_play"}
+  ],
+  "quality_rules": [
+    "Exclude Status == In Development.",
+    "rehab_year >= as_of_year - 5 -> -15 (shared_adjustments.penalties.recent_rehab).",
+    "LIFT or 60-year REUA with extended-use end > 30 years out -> urgency SCHEDULED, no timing points.",
+    "Proxy-only governing events -> tier cap C (proxy-only label).",
+    "SOFT_PROGRAM_END is an affordability-period end, not a note maturity; a soft-loan balloon scores only when recorded (SOFT_LOAN_MATURITY).",
+    "HAP expiration dates under annual renewal roll forward each year; 'expiring in 12 months' is not 'leaving the program' until a notice is confirmed."
+  ]
+}

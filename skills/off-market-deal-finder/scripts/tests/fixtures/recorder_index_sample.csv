@@ -1,0 +1,13 @@
+instrument_no,doc_type,recording_date,grantor,grantee,parcel_id,address,city,zip,county_fips,state,stated_principal,maturity_date,sale_date,sum_owing,units
+2018-061234,Trust Deed,2018-06-15,Hawthorne 48 LLC,Umpqua Bank,R123456,4820 SE Hawthorne Blvd,Portland,97215,41051,OR,4200000,,,,48
+2021-099001,Deed of Trust,2021-08-02,Division Flats Owner LLC,MF1 REIT LLC,R222333,2200 SE Division St,Portland,97202,41051,OR,9800000,,,,72
+2016-044100,Trust Deed,2016-03-10,Smith; John A and Mary L,OnPoint Community Credit Union,R555666,7312 N Fessenden St,Portland,97203,41051,OR,310000,,,,1
+2026-071500,Appointment of Successor Trustee,2026-07-15,Smith; John A and Mary L,Clear Recon Corp,R555666,7312 N Fessenden St,Portland,97203,41051,OR,,,,,1
+2026-080100,Notice of Default and Election to Sell,2026-08-01,Smith; John A and Mary L,Clear Recon Corp,R555666,7312 N Fessenden St,Portland,97203,41051,OR,,,2026-12-10,287450,1
+2014-020202,Trust Deed,2014-02-20,Lents Fourplex LLC,Banner Bank,R777888,9115 SE Foster Rd,Portland,97266,41051,OR,650000,2024-03-01,,,4
+2024-030303,Reconveyance,2024-03-05,Banner Bank,Lents Fourplex LLC,R777888,9115 SE Foster Rd,Portland,97266,41051,OR,,,,,4
+2024-031515,Deed of Trust,2024-03-20,Lents Fourplex LLC,Heritage Bank,R777888,9115 SE Foster Rd,Portland,97266,41051,OR,700000,,,,4
+2019-050505,Trust Deed,2019-05-05,Glenwood Court LLC,Columbia State Bank,R999000,1200 NE Glenwood Dr,Gresham,97030,41051,OR,2100000,,,,24
+2026-060606,Full Reconveyance,2026-06-06,Columbia State Bank,Glenwood Court LLC,R999000,1200 NE Glenwood Dr,Gresham,97030,41051,OR,,,,,24
+2026-090909,Notice of Trustee's Sale,2026-09-09,Garcia Living Trust,North Cascade Trustee Services,123456789,3304 NE 52nd St,Vancouver,98663,53011,WA,,,2026-12-19,,2
+2026-040404,Certificate of Mystery Filing,2026-04-04,Someone,Somebody,R111222,1 Unknown Way,Portland,97201,41051,OR,,,,,1

@@ -1,0 +1,78 @@
+{
+  "_schema": "preservation-loan-book scoring shared adjustments v1.0. Applied by scripts/score_preservation.py (plb/scoring.py) after per-class factor points are computed from the class JSON (affordable_public_am.json; noah_watch.json when --noah-watch). Class files never restate anything in this file. Ported from off-market-deal-finder v2 with every buyer-side rule removed: no deal-size or mission-fit multipliers, no housing-authority cap, no acquisition routing, no penalties block (recent_rehab lives only in the physical factor).",
+  "version": "1.0",
+  "basis_multipliers": {
+    "RECORDED": 1.0,
+    "REPORTED": 0.9,
+    "DERIVED": 0.8,
+    "ESTIMATED": 0.5,
+    "PROXY": 0.3
+  },
+  "verify_flag_multiplier_overrides": {
+    "Verify — Ambiguous": 0.4
+  },
+  "governing_event_rule": "points = (base-band take + modifiers, capped at the weight) x basis_multiplier x post_multipliers. For each event-driven factor the basis multiplier is the minimum across the BASE bands that scored (for basis_from governing_event, the governing owner-cliff event); modifiers keep their own event basis and never move the factor multiplier. An event's confidence (< 1) scales the points of every band or modifier that event matched (HAP_EXPIRATION 0.70 annual / term unknown; 0.90 20-year MAHRA or agency PBV contract). A Verify — Ambiguous flag on a base event forces 0.40. Worked example: Powell Plaza I clock = (18 x 0.70 + 2 x 0.70 + 3) x 0.90 = 15.3 of 20.",
+  "urgency_bands": [
+    {"band": "OVERDUE", "months_out": [null, 0], "timing_fraction": 1.0, "note": "for an AGENCY_DEADLINE the act-by date passed; for an owner cliff the date passed with no renewal or termination evidence (verify case; STALE_CONTRACT_DATE rows are reported separately)"},
+    {"band": "CRITICAL", "months_out": [0, 12], "timing_fraction": 1.0},
+    {"band": "URGENT", "months_out": [12, 24], "timing_fraction": 0.75},
+    {"band": "APPROACHING", "months_out": [24, 36], "timing_fraction": 0.5},
+    {"band": "MONITOR", "months_out": [36, 60], "timing_fraction": 0.25},
+    {"band": "SCHEDULED", "months_out": [60, 120], "timing_fraction": 0.0},
+    {"band": "BEYOND", "months_out": [120, null], "timing_fraction": 0.0, "note": "outside the 10-year horizon; never scored; counted in Board_Totals 'beyond horizon'"}
+  ],
+  "urgency_scale_note": "Bands are months, not critical-dates-tracker's days. board_impact = units_at_risk x timing_fraction(owner_cliff_band). action_band = min(agency act-by, owner cliff) drives the queue sort; Board_Totals and Units_by_Year band on owner_cliff_band.",
+  "queue_bands": [
+    {"queue_band": "ESCALATE", "min_score": 70},
+    {"queue_band": "ACT", "min_score": 50},
+    {"queue_band": "PLAN", "min_score": 30},
+    {"queue_band": "WATCH", "min_score": 0, "requires": "any dated PRESSURE event inside horizon"},
+    {"queue_band": "EXCLUDED", "requires": "no dated PRESSURE event inside horizon, In Development, outside geography, or under 5 units with no program event (exclusion_reason names the cause)"}
+  ],
+  "multipliers": {
+    "recap_status": {
+      "description": "Applied to factors restriction_hap_qc_clock and declared_intent_vs_silence only (class files list it under post_multipliers). A property already being recapitalized by a mission sponsor stays in the universe and is labeled, never excluded or zeroed.",
+      "none": 1.0,
+      "announced": 1.0,
+      "under_application": 0.5,
+      "closed": 0.5,
+      "evidence_rule": "0.5 applies only when recap_evidence_basis is RECORDED or REPORTED (forecast status Preserved / Resyndicated / Extended, the agency's own application pipeline, or a recorded closing); hearsay keeps 1.0 and adds signal recap_status_unverified."
+    }
+  },
+  "hard_filters": {
+    "mandate_eligibility": {
+      "scope": "route",
+      "description": "Route-level filter on nofa_offer. A product qualifies when status in {open, rolling} AND (eligible_programs empty or intersects programs_list) AND owner_type not in ineligible_owner_types AND (eligible_owner_types empty or owner_type in it) AND units >= min_units (units, not units_at_risk) AND (application_window absent or as_of inside it). mandate_fit = eligible if any product qualifies; ineligible if products exist and none qualifies (mandate_ineligible_reason = first failing test per product, ';'-joined); no_mandate_file when the pack has no mandate.json (signal mandate_unknown; nofa_offer still allowed).",
+      "effect_on_ineligible": "nofa_offer blocked; mandate_fit and mandate_ineligible_reason written as lead columns; lead still scores and routes elsewhere; never an exclusion reason; no multiplier anywhere"
+    }
+  },
+  "suppressions": [
+    {"id": "suppress_until", "event_type": "SUPPRESS_UNTIL", "condition": "event_date > as_of", "effect": "all DEBT-family factors score 0 (our_capital_at_risk DEBT bands included; REGULATORY bands unchanged); REGULATORY, OWNERSHIP, TAX_LIEN, PHYSICAL, OPERATING, AGENCY_DEADLINE factors unchanged", "classes": ["affordable_public_am", "noah_unregulated"]},
+    {"id": "in_development", "field": "status", "condition": "status == 'In Development'", "effect": "queue_band EXCLUDED; exclusion_reason in_development; listed under 'Pipeline, not scored'", "classes": ["affordable_public_am"]}
+  ],
+  "caps": [
+    {"id": "proxy_only", "condition": "every governing event has basis PROXY", "queue_cap": "PLAN", "label": "cap:proxy-only"},
+    {"id": "no_pressure_in_horizon", "condition": "no dated PRESSURE event inside horizon", "effect": "queue_band EXCLUDED; exclusion_reason no_dated_cliff_in_horizon"}
+  ],
+  "decay": {
+    "description": "Events older than 180 days count at 50% in stacking factors, except permanent states and open conditions.",
+    "half_weight_after_days": 180,
+    "permanent_event_types": ["ENTITY_ADMIN_DISSOLVED", "UNENCUMBERED", "HOLD_YEARS"],
+    "non_decaying_while_open": ["COVENANT_DEFAULT", "NOTICE_COMPLIANCE_BREACH", "NONCOMPLIANCE_FINDING", "QC_ELIGIBILITY:requested", "THIRD_PARTY_OFFER_RECEIVED", "USDA_PREPAY_REQUEST_RECEIVED", "RECAPTURE_TRIGGER"],
+    "note": "A COVENANT_DEFAULT 400 days old still scores 15 while covenant_status remains default; it closes when covenant_status moves to cured or released (kpi covenant_cured)."
+  },
+  "stacking_rules": {
+    "independence": "Families count once each. Helper deadlines (AGENCY_DEADLINE family, PRESERVATION_NOTICE_WINDOW) and NOTICE_COMPLIANCE_BREACH never count toward programs_ending_same_24mo. Agency servicing rows, HUD tapes, OHCS inventory and SOS records are independent legs; OHCS and the OHCS forecast are the same upstream.",
+    "families": ["DEBT", "REGULATORY", "HARD_DISTRESS", "TAX_LIEN", "PHYSICAL", "OWNERSHIP", "OPERATING", "AGENCY_DEADLINE"]
+  },
+  "routes": {
+    "precedence": ["optout_response", "notice_compliance", "qc_admin", "designee_rofr", "recap_committee", "servicing_watch", "nofa_offer", "ta_sponsor"],
+    "sentinels": ["none", "excluded"],
+    "rules_location": "affordable_public_am.json routes.rules (statutory clocks first, then money, then programs); each rule is gated by the agency profile's routes_enabled (references/sources/<pack>/agency-profiles.yaml) and self_owned rows skip notice_compliance, designee_rofr, nofa_offer, ta_sponsor",
+    "exclusion_reasons": ["in_development", "outside_geography", "under_5_units_no_program_event", "no_dated_cliff_in_horizon"]
+  },
+  "evidence_rule": {
+    "description": "Every factor stores evidence[] (event ids with date, basis, source, or signal and value), reading (one line: how the agency asset manager experiences it) and intervention (the tool the agency can deploy, by catalog id). A factor with empty evidence scores 0 regardless of band match. A factor whose `requires` fails scores 0 with the factor_status named in on_requires_fail (WATCH for a missing expected book join)."
+  },
+  "removed_from_v2": ["post_score_multipliers.deal_size_fit", "post_score_multipliers.mission_fit_affordable", "post_score_multipliers.noi_source_weight", "penalties.recent_1031", "penalties.recent_rehab (moved into physical_reac_occupancy)", "suppressions.on_market", "suppressions.cured_or_released", "routing_rules.lender_counterparty", "routing_rules.housing_authority_government", "routing_rules.nonprofit_rofr_or_prac", "routing_rules.assumption_play", "routing_rules.watch (WATCH is a queue band, not a route)", "caps.no_debt_no_reg_mf", "caps.housing_authority_cap", "caps.lift_60yr (redundant with BEYOND)", "deal_size_defaults", "tier_bands (replaced by queue_bands)"]
+}

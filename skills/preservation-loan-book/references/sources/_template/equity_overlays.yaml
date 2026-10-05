@@ -1,0 +1,13 @@
+# Optional equity overlay for the <st>-<metro> pack. Read by plb/scoring.build_context to set high_displacement_tract and
+# underserved_district (+2 / +2 in stacking_geography_equity). Absent or empty -> 0 points and an Assumptions-tab note.
+as_of: null
+source: null
+verified_live: false
+high_displacement_tracts:
+  tract_geoids: []
+  property_ids: []
+underserved_districts:
+  key: <district key available in the state inventory>
+  values: []
+  prior_awards_by_district: {}
+  threshold_awards: null

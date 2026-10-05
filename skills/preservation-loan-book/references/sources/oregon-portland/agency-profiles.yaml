@@ -1,0 +1,117 @@
+# Agency profiles for the oregon-portland pack. Read by plb/schema.load_agency_profiles(pack_dir) and applied by
+# build_universe.py (book_sources, expected_book_flag, self_owner_tokens), plb/agency_calendar.py (receives_push_notice,
+# is_qualified_purchaser), plb/scoring.py (routes_enabled, administers_qc, is_pbca, is_designee), plb/units.py
+# (recapture_methods, board_totals_variant) and plb/pii.py (pii_level_public_packet). The profile changes behaviour,
+# not labels: that is the lesson of v2's failed "qualified_purchaser as a skin".
+#
+# Every statutory_cites entry is verified_live false in this build. Institutional facts (PBCA identity, designee
+# agreements, county program names) are illustrative and marked verify.
+
+hfa:
+  agency_name: "Oregon Housing and Community Services"
+  roles: [am_officer, compliance_officer, push_program_manager, nofa_program_manager, legal_counsel, pbca_liaison, board_liaison]
+  book_sources: [ohcs_funded_flag, agency_servicing_extract]
+  expected_book_flag: {column: "OHCS Funded?", equals: true}        # 420 of 810 metro rows; drives unmatched_expected under book_coverage full
+  book_kinds: [loan, grant, administered_contract]
+  is_qualified_purchaser: true          # ORS 456.250 (verify)
+  is_designee: false
+  receives_push_notice: true            # ORS 456.260 owner notices go to OHCS (verify)
+  administers_qc: true                  # IRC 42(h)(6) housing credit agency
+  is_pbca: true                         # verify: Oregon PBRA contract administration identity under the 2024-2025 HUD PBCA re-solicitation
+  routes_enabled: [optout_response, notice_compliance, qc_admin, designee_rofr, recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, HTF: full, default: full}   # rental HOME: 24 CFR 92.503(b) all HOME funds repayable; prorata (92.254(a)(5)(ii)) is homebuyer-only
+  statutory_cites: ["ORS 456.250-.265", "OAR 813-115", "SB 973 (2025)", "SB 32 (2025)", "SB 51 (2025)", "IRC 42(h)(6), 42(i)(7)", "26 CFR 1.42-5", "42 U.S.C. 1437f(c)(8); 24 CFR 402.8", "ORS 192.345 / 192.355"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [ohcs_preservation_nofa, lihtc_4pct_gap, zero_pct_rehab_recap, usda_mpr]
+  board_totals_variant: loan_book
+  notice_log_source: "OHCS PuSH-CP notice log (internal; RECORDED)"
+  qc_log_source: "OHCS LIHTC compliance QC request log (internal; RECORDED)"
+
+city_housing:
+  agency_name: "Portland Housing Bureau"
+  roles: [am_officer, compliance_officer, push_program_manager, nofa_program_manager, legal_counsel, board_liaison]
+  book_sources: [phb_loan_extract]
+  expected_book_flag: null              # unmatched_expected only when the extract names the property and the join failed
+  book_kinds: [loan, grant]
+  is_qualified_purchaser: true          # affected local government, ORS 456.250 (verify)
+  is_designee: false
+  receives_push_notice: true            # owner notices to each affected local government (verify)
+  administers_qc: false                 # QC signals route ta_sponsor / nofa_offer with qc_coordination_with_hfa
+  is_pbca: false
+  routes_enabled: [optout_response, notice_compliance, designee_rofr, recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, default: full}   # rental HOME: 24 CFR 92.503(b); prorata is homebuyer-only (92.254)
+  statutory_cites: ["ORS 456.250-.265", "OAR 813-115", "SB 973 (2025)", "24 CFR 92.252(e) (2025 rule may letter it (d)(4); verify)", "24 CFR 92.503(b) (rental HOME repayment)", "24 CFR 92.254 (homebuyer only)", "24 CFR 570.505", "24 CFR 570 subpart M (Section 108)", "Portland 60-year affordability covenant (city code; verify)", "ORS 192.345 / 192.355"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [phb_preservation_rfp, lihtc_4pct_gap, metro_bond_acquisition, noah_ohaf_bridge]
+  board_totals_variant: loan_book
+  geography_default: city_limits
+  noah_watch_question: true             # ask before enabling when mandate lists an open acquisition_grant class product
+  notice_log_source: "PHB received-notice file (RECORDED when the City is the affected local government)"
+
+county:
+  agency_name: "Multnomah / Washington / Clackamas County housing offices (one profile per county run)"
+  roles: [am_officer, push_program_manager, nofa_program_manager, legal_counsel, board_liaison]
+  book_sources: [home_cdbg_levy_extract]
+  expected_book_flag: null
+  book_kinds: [loan, grant]
+  is_qualified_purchaser: true          # affected local government for unincorporated areas and county-funded properties (verify)
+  is_designee: false
+  receives_push_notice: true
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [optout_response, notice_compliance, designee_rofr, recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, default: full}   # rental HOME: 24 CFR 92.503(b); prorata is homebuyer-only (92.254)
+  statutory_cites: ["ORS 456.250-.265", "OAR 813-115", "24 CFR 92", "24 CFR 570", "Metro Measure 26-199 (bond IGA; verify)", "ORS 192.345 / 192.355"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [metro_bond_acquisition, noah_ohaf_bridge]
+  board_totals_variant: loan_book
+  geography_default: county
+  noah_watch_question: true
+
+pha_am:
+  agency_name: "Home Forward (alternates: Housing Authority of Clackamas County; Housing Authority of Washington County)"
+  roles: [am_officer, pha_development, compliance_officer, legal_counsel, board_liaison]
+  book_sources: [pha_owned_assets, pbv_contracts]
+  expected_book_flag: null
+  book_kinds: [owned_asset, administered_contract]
+  is_qualified_purchaser: false         # only when appointed as an OHCS designee (verify)
+  is_designee: false                    # set true when a designee agreement exists -> enables designee_rofr
+  receives_push_notice: false
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [recap_committee, servicing_watch, ta_sponsor, nofa_offer]     # optout_response only for administered PBV contracts when is_pbca or a designee agreement applies (verify)
+  self_owner_tokens: ["Home Forward", "Housing Authority of Portland"]            # owner_name match -> self_owned, universe our_book; alternates: "Housing Authority of Clackamas County", "Housing Authority of Washington County"
+  recapture_methods: {default: none}
+  statutory_cites: ["RAD Notice H-2019-09 / PIH-2019-23 REV-4", "Section 18 of the 1937 Act; 24 CFR part 970", "PIH 2024-40; PIH 2026-23", "24 CFR 983 (PBV)", "42 U.S.C. 1437f(t) (enhanced vouchers)", "ORS 192.345 / 192.355"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [lihtc_4pct_gap]
+  board_totals_variant: owned_assets    # owned_units, pbv_households, rad_section18_status replace the UPB columns
+  self_owned_skips: [notice_compliance, designee_rofr, nofa_offer, ta_sponsor]
+
+cdbg_home:
+  agency_name: "Portland Consortium HOME / CDBG participating jurisdiction (PHB as lead; Gresham and Multnomah County partners — verify consortium membership)"
+  roles: [cpd_program_manager, compliance_officer, am_officer, board_liaison]
+  book_sources: [home_cdbg_affordability_extract]
+  expected_book_flag: {column: programs, intersects: [HOME, CDBG]}  # metro OHCS has 0 HOME-only rows; the PJ's own extract is the only RECORDED source for AFFORDABILITY_PERIOD_END
+  book_kinds: [grant, loan]
+  is_qualified_purchaser: false
+  is_designee: false
+  receives_push_notice: false
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [recap_committee, servicing_watch, nofa_offer, ta_sponsor]     # INSPECTION_DUE (24 CFR 92.504(d)) and covenant_recapture_review replace PuSH enforcement
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, HTF: full, default: full}   # rental HOME: 24 CFR 92.503(b) all HOME funds repayable; prorata (92.254(a)(5)(ii)) is homebuyer-only
+  statutory_cites: ["24 CFR 92.252(e) (2025 rule may letter it (d)(4); verify)", "24 CFR 92.503(b) (rental HOME repayment)", "24 CFR 92.254(a)(5) (homebuyer only)", "24 CFR 92.504(d)", "24 CFR 93.302", "24 CFR 570.505; 570.208", "ORS 192.345 / 192.355"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [phb_preservation_rfp]
+  board_totals_variant: loan_book
+  home_rule_vintage_note: "store pre/post 2025 HOME final rule (effective 2025-02-05, opt-in / new commitments) per project. Post-2025 Table 1 to 92.252 (snippet): under $25,000 -> 5 years; $25,000-$50,000 -> 10; over $50,000 or rehab with refinancing -> 15; new construction -> 20. Pre-2025: $15,000 / $40,000 breakpoints. Paragraph lettering may have moved from (e) to (d)(4) under the 2025 rule — verify"

@@ -1,0 +1,181 @@
+{
+  "_schema": "Mandate / product-eligibility file read by plb/mandate.py. A product qualifies when status in {open, rolling} AND (eligible_programs empty or intersects programs_list) AND owner_type not in ineligible_owner_types AND (eligible_owner_types empty or owner_type in it) AND units >= min_units (units, not units_at_risk) AND (application_window absent or as_of inside it). mandate_fit = eligible if any product qualifies; ineligible if products exist and none qualifies (mandate_ineligible_reason = first failing test per product); no_mandate_file when the pack has no mandate.json. Route-level hard filter on nofa_offer only: never an exclusion reason, never a multiplier. Every product is a placeholder with verified_live false until the agency pastes its own NOFA terms.",
+  "pack": "<st>-<metro>",
+  "as_of": "<YYYY-MM-DD>",
+  "agency_profile_defaults": {
+    "hfa": [
+      "<state>_preservation_nofa",
+      "lihtc_4pct_gap",
+      "zero_pct_rehab_recap"
+    ],
+    "city_housing": [
+      "<city>_preservation_rfp",
+      "acquisition_grant"
+    ],
+    "county": [
+      "acquisition_grant"
+    ],
+    "pha_am": [
+      "lihtc_4pct_gap",
+      "rad_conversion"
+    ],
+    "cdbg_home": [
+      "<pj>_home_cdbg_reinvestment"
+    ]
+  },
+  "products": [
+    {
+      "product_id": "<state>_preservation_nofa",
+      "name": "<State HFA> preservation NOFA (list the programs it funds)",
+      "agency_owner": "nofa_program_manager",
+      "status": "<open|closed|rolling>",
+      "eligible_programs": [
+        "LIHTC_9",
+        "LIHTC_4",
+        "HAP",
+        "PRAC",
+        "USDA_515",
+        "HOME",
+        "HTF"
+      ],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": {
+        "opens": "<YYYY-MM-DD>",
+        "closes": "<YYYY-MM-DD>"
+      },
+      "new_covenant_years": 30,
+      "source": "<NOFA URL and date read>",
+      "verified_live": false
+    },
+    {
+      "product_id": "lihtc_4pct_gap",
+      "name": "4% LIHTC with tax-exempt bonds plus HFA gap",
+      "agency_owner": "nofa_program_manager",
+      "status": "rolling",
+      "eligible_programs": [],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 30,
+      "source": "<QAP / bond policy>",
+      "verified_live": false
+    },
+    {
+      "product_id": "zero_pct_rehab_recap",
+      "name": "0% recapitalization / rehab loan",
+      "agency_owner": "am_officer",
+      "status": "<status>",
+      "eligible_programs": [],
+      "eligible_owner_types": [
+        "nonprofit",
+        "lihtc_partnership_nonprofit_gp",
+        "housing_authority",
+        "government"
+      ],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 30,
+      "source": "<agency product terms>",
+      "verified_live": false
+    },
+    {
+      "product_id": "acquisition_grant",
+      "name": "acquisition / preservation grant (enables the optional NOAH watch question for city_housing / county)",
+      "agency_owner": "nofa_program_manager",
+      "status": "<status>",
+      "eligible_programs": [],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 60,
+      "source": "<local bond / levy authority>",
+      "verified_live": false
+    },
+    {
+      "product_id": "<city>_preservation_rfp",
+      "name": "<City housing bureau> preservation RFP",
+      "agency_owner": "nofa_program_manager",
+      "status": "<status>",
+      "eligible_programs": [],
+      "eligible_owner_types": [
+        "nonprofit",
+        "lihtc_partnership_nonprofit_gp",
+        "housing_authority"
+      ],
+      "ineligible_owner_types": [],
+      "min_units": 5,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 60,
+      "source": "<RFP URL>",
+      "verified_live": false
+    },
+    {
+      "product_id": "<pj>_home_cdbg_reinvestment",
+      "name": "HOME / CDBG re-investment for a new affordability period (24 CFR 92.252(e); 570)",
+      "agency_owner": "cpd_program_manager",
+      "status": "rolling",
+      "eligible_programs": [
+        "HOME",
+        "CDBG"
+      ],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 1,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 20,
+      "source": "<PJ action plan>",
+      "verified_live": false
+    },
+    {
+      "product_id": "rad_conversion",
+      "name": "RAD conversion (external, HUD)",
+      "agency_owner": "pha_development",
+      "status": "open",
+      "eligible_programs": [
+        "PBV",
+        "HAP"
+      ],
+      "eligible_owner_types": [
+        "self_owned",
+        "housing_authority"
+      ],
+      "ineligible_owner_types": [],
+      "min_units": 1,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 20,
+      "source": "RAD Notice H-2019-09 / PIH-2019-23 REV-4 (verify)",
+      "verified_live": false,
+      "external": true
+    },
+    {
+      "product_id": "usda_mpr",
+      "name": "USDA MPR (external, RD)",
+      "agency_owner": "rd_state_office",
+      "status": "rolling",
+      "eligible_programs": [
+        "USDA_515"
+      ],
+      "eligible_owner_types": [],
+      "ineligible_owner_types": [],
+      "min_units": 1,
+      "max_per_unit": null,
+      "application_window": null,
+      "new_covenant_years": 20,
+      "source": "RD MPR notices (verify)",
+      "verified_live": false,
+      "external": true
+    }
+  ]
+}

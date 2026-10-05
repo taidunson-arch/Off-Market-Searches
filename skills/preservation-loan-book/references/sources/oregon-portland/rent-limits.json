@@ -1,0 +1,15 @@
+{
+  "_schema": "LIHTC maximum rents by AMI band for restricted NOI used only to size a recast or 0% recap gap on our_book rows. PLACEHOLDER: every rent is null until the user pastes the current HUD/OHCS limits; while null, est_restricted_noi is blank and the lead carries 'Missing Source — Request Document' (rent roll from the agency file); there is no market $/unit fallback. Populate from the OHCS Income and Rent Limits page (MTSP limits, Portland-Vancouver-Hillsboro MSA) and record as_of and source.",
+  "as_of": null,
+  "source": "OHCS Income and Rent Limits (MTSP) for the Portland-Vancouver-Hillsboro, OR-WA HUD Metro FMR Area; URL to be confirmed (oregon.gov not fetched in this build)",
+  "verify": true,
+  "verified_live": false,
+  "unit_mix_assumption": "rents are blended across bedroom sizes; when the property's unit mix is known, replace with a weighted figure per band",
+  "max_rents_by_ami": {"30": null, "40": null, "50": null, "60": null, "80": null},
+  "hap_contract_rent_default": null,
+  "notes": [
+    "Gross rent limits include a utility allowance; net the allowance before using as collectable rent.",
+    "HOME and OAHTC rents can be lower than the LIHTC limit for the same AMI band; use the binding restriction.",
+    "Market-rate units in a mixed property use market-params asking_rent_by_bedroom with the Class C haircut."
+  ]
+}

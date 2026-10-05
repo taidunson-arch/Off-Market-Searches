@@ -1,0 +1,305 @@
+{
+  "_schema": "Market and product parameters for the oregon-portland pack (preservation-loan-book). Every value carries value, as_of and source. Values marked verify must be re-pulled before a run that depends on them; verified_live false means the publisher's page was not fetched in this build. Statutory day/month counts are stored ONLY here (plb/agency_calendar.py reads them) and are snippet-derived: confirm against current statute text before any letter cites them. Market-rate cap rates, price per unit, asking rents, refinance spreads, bridge terms, rent-cap, relocation, Schedule R, lien-search and OJCIN fees from the buyer-side pack are removed. Read by plb/recap_math.py, plb/agency_calendar.py, plb/units.py, make_handoffs.py and build_board_workbook.py (Assumptions tab).",
+  "market_id": "us-or-multnomah",
+  "pack_as_of": "2026-10-04",
+  "benchmarks_source": {
+    "value": "multifamily-benchmarks Quick Reference 2026-05",
+    "as_of": "2026-05-01",
+    "source": "sibling skill multifamily-benchmarks; surface this date in the Assumptions tab"
+  },
+  "cap_rate_affordable": {
+    "value": 0.0675,
+    "as_of": "2026-10-04",
+    "source": "derived: Class C cap + 100 bp for as-restricted collateral context inside recap memos only; not a market observation; never on a lead",
+    "verify": true
+  },
+  "vacancy": {
+    "value": 0.071,
+    "as_of": "2026-06-30",
+    "source": "Kidder Mathews Portland Multifamily Q2 2026 vacancy (stabilized underwriting input for restricted NOI on non-assisted units)",
+    "verified_live": false
+  },
+  "vacancy_hap_units": {
+    "value": 0.03,
+    "as_of": "2026-10-04",
+    "source": "convention for HAP-assisted units",
+    "verify": true
+  },
+  "opex_per_unit_regulated": {
+    "value": 8700,
+    "as_of": "2026-10-04",
+    "source": "OHCS Affordable Housing Financial Report FY24 $8,198/unit inflated ~3%/yr; low-end bound for older Class C",
+    "verify": true
+  },
+  "opex_ratio_affordable": {
+    "value": 0.5,
+    "as_of": "2026-10-04",
+    "source": "convention for regulated portfolio (compliance costs, lower payroll efficiency)",
+    "verify": true
+  },
+  "senior_dscr_floor": {
+    "value": 1.15,
+    "as_of": "2026-05-01",
+    "source": "sizing-lihtc-permanent-debt hard-debt convention (1.15x typical; mandatory soft debt vs residual receipts handled there); used by recap_math.recap_gap"
+  },
+  "dscr_floor_affordable": {
+    "value": 1.15,
+    "as_of": "2026-05-01",
+    "source": "alias of senior_dscr_floor kept for v2 compatibility"
+  },
+  "ltv_max_affordable": {
+    "value": 0.8,
+    "as_of": "2026-05-01",
+    "source": "sizing-lihtc-permanent-debt convention (senior sizing context only)"
+  },
+  "debt_yield_floor": {
+    "value": 0.08,
+    "as_of": "2026-05-01",
+    "source": "multifamily-benchmarks: agency debt yield 8-9% (senior sizing context only)"
+  },
+  "ust10": {
+    "value": 0.0415,
+    "as_of": "2026-10-04",
+    "source": "PLACEHOLDER 10-year US Treasury yield for senior-rate framing in recap memos; pull the current value before any run",
+    "verify": true
+  },
+  "senior_rate_default": {
+    "value": 0.0615,
+    "as_of": "2026-10-04",
+    "source": "PLACEHOLDER: ust10 + ~200 bp for a new first mortgage in the recap gap example; replace with the proposed senior lender's quote",
+    "verify": true
+  },
+  "recap_loan_rate": {
+    "value": 0.0,
+    "as_of": "2026-10-04",
+    "source": "agency 0% recapitalization / rehab loan product (zero_pct_rehab_recap in mandate.json); placeholder, no OHCS product sheet read",
+    "verify": true
+  },
+  "rehab_loan_rate": {
+    "value": 0.01,
+    "as_of": "2026-10-04",
+    "source": "placeholder soft rehab loan rate; verify agency product terms",
+    "verify": true
+  },
+  "preservation_nofa_open": {
+    "value": false,
+    "as_of": "2026-10-04",
+    "source": "OHCS centralized Affordable Rental Housing NOFA cohort runs Feb-May (2025 pattern); see mandate.json ohcs_preservation_nofa application_window",
+    "verified_live": false,
+    "verify": true
+  },
+  "gap_4pct_available": {
+    "value": true,
+    "as_of": "2026-10-04",
+    "source": "OHCS 4% LIHTC with tax-exempt bonds plus gap, rolling (mandate.json lihtc_4pct_gap); verify bond cap status",
+    "verify": true
+  },
+  "acquisition_grant_max_per_unit": {
+    "value": null,
+    "as_of": null,
+    "source": "Metro bond / county acquisition program per-unit cap; not retrieved in this build",
+    "verify": true
+  },
+  "push_window_prep_months": {
+    "value": 36,
+    "as_of": "2026-10-04",
+    "source": "INTERNAL prep date: PUSH_WINDOW_PREP = anchor - 36 mo. No statutory basis found for a 36-month owner-notice start; OAR 813-115-0030 (summary) reads no sooner than 30 and at least 24 months before withdrawal; 36 months is SB 973's TENANT notice outer bound",
+    "verified_live": false,
+    "verify": true
+  },
+  "push_first_notice_months": {
+    "value": 30,
+    "as_of": "2026-10-04",
+    "source": "ORS 456.260 / OAR 813-115-0030 (summary): owner notice to OHCS and each affected local government no sooner than 30 months before withdrawal; ORS 456.262 lets OHCS appoint a designee after the owner's notice OR 30 months before expiry, whichever is earlier; the (1)/(2) split is unread (post-SB 973 text not read); PUSH_FIRST_NOTICE_DUE = anchor - 30 mo",
+    "verified_live": false,
+    "verify": true
+  },
+  "push_second_notice_months": {
+    "value": 24,
+    "as_of": "2026-10-04",
+    "source": "ORS 456.260 / OAR 813-115-0030 (summary): owner notice at least 24 months before withdrawal; ORS 456.262 bars withdrawal until 24 months after the (2) notices (unread); PUSH_SECOND_NOTICE_DUE = anchor - 24 mo",
+    "verified_live": false,
+    "verify": true
+  },
+  "tenant_notice_months": {
+    "value": [36, 30],
+    "as_of": "2026-10-04",
+    "source": "SB 973 (2025): tenant notice not less than 30 and not more than 36 months before restriction expiry, five languages, applicant disclosure (staff summary snippet); TENANT_NOTICE_WINDOW",
+    "verified_live": false,
+    "verify": true
+  },
+  "sb973_operative_restriction_date": {
+    "value": "2028-07-01",
+    "as_of": "2026-10-04",
+    "source": "SB 973 operative 2026-01-01 per staff summary; v2 noted a phase-in for restrictions ending on/after 2028-07-01 that was not confirmed. Anchors before this date get tenant_notice_status n/a_pre_operative. VERIFY against the enrolled bill before relying on it",
+    "verified_live": false,
+    "verify": true
+  },
+  "records_request_after_notice_days": {
+    "value": 10,
+    "as_of": "2026-10-04",
+    "source": "internal target: the qualified purchaser's records request follows the owner's notice within 10 days (RECORDS_REQUEST_DUE); not a statutory figure"
+  },
+  "records_request_response_days": {
+    "value": 30,
+    "as_of": "2026-10-04",
+    "source": "OAR 813-115-0050 Qualified Purchaser Access to Property, Records and Documents (implements ORS 456.262(6)-(7); compliance reports, approved rent schedule with actual rents). The 30-day response period was NOT found in any snippet: working target only; read ORS 456.262(6)-(7). RECORDS_RESPONSE_DUE",
+    "verified_live": false,
+    "verify": true
+  },
+  "rofr_match_days": {
+    "value": 30,
+    "as_of": "2026-10-04",
+    "source": "ORS 456.263 / OAR 813-115-0070: qualified purchaser has 30 days from the owner's certified mailing of a third-party offer to deliver a matching offer (snippet); ROFR_MATCH_DEADLINE",
+    "verified_live": false,
+    "verify": true
+  },
+  "rofr_duration_months_after_termination": {
+    "value": 24,
+    "as_of": "2026-10-04",
+    "source": "ORS 456.262: the qualified purchaser's notice must declare that the right of first refusal expires 24 months after the withdrawal date (statute snippets and the OHCS designee page); no source supports 36",
+    "verified_live": false,
+    "verify": true
+  },
+  "rofr_recordable_days_after_offer": {
+    "value": 30,
+    "as_of": "2026-10-04",
+    "source": "ORS 456.262 (snippet): on or after the date OHCS may appoint a designee, a qualified purchaser first delivers an OFFER to purchase that includes notice that it may, after 30 days, record a notice of right of first refusal; ROFR_RECORDABLE_DATE = qp_offer_delivered_date + 30 d",
+    "verified_live": false,
+    "verify": true
+  },
+  "push_program_coverage_verified": {
+    "value": false,
+    "as_of": "2026-10-04",
+    "source": "ORS 456.250 defines publicly supported housing by a HUD / USDA / OHCS rent-assistance or affordability contract plus assistance identified in OAR 813-115-0010 (unread). Until true, HOME-only (PJ) and LIHTC-only rows receive their PuSH window with Verify — PuSH Coverage",
+    "verified_live": false,
+    "verify": true
+  },
+  "qc_response_months": {
+    "value": 12,
+    "as_of": "2026-10-04",
+    "source": "IRC 42(h)(6)(I): one-year period for the housing credit agency to present a qualified contract after a complete request; QC_RESPONSE_DUE",
+    "verified_live": false,
+    "verify": true
+  },
+  "qc_tenant_protection_months": {
+    "value": 36,
+    "as_of": "2026-10-04",
+    "source": "IRC 42(h)(6)(E)(ii): three years of no-eviction / no-rent-increase after extended-use termination",
+    "verified_live": false
+  },
+  "hap_optout_notice_months": {
+    "value": 12,
+    "as_of": "2026-10-04",
+    "source": "42 U.S.C. 1437f(c)(8); 24 CFR 402.8: one-year owner notice to tenants, HUD and the contract administrator; HAP_OPTOUT_NOTICE_DEADLINE",
+    "verified_live": false,
+    "verify": true
+  },
+  "hap_optout_package_days": {
+    "value": 120,
+    "as_of": "2026-10-04",
+    "source": "HUD Section 8 Renewal Policy Guidebook (March 2023) ch. 11: opt-out request and certification not less than 120 days before expiration (secondary summaries); HAP_OPTOUT_PACKAGE_DUE",
+    "verified_live": false,
+    "verify": true
+  },
+  "hap_annual_renewal_roll_months": {
+    "value": 12,
+    "as_of": "2026-10-04",
+    "source": "convention: next_expected_expiration = stale date + 12 months for annually renewing contracts (STALE_CONTRACT_DATE rows)"
+  },
+  "prac_renewal_term_years": {
+    "value": 5,
+    "as_of": "2026-10-04",
+    "source": "Notice H 2022-05: 202/811 PRAC renewals on five-year terms (snippet)",
+    "verified_live": false,
+    "verify": true
+  },
+  "inspection_cadence_home": {
+    "value": {"1-4": 36, "5-25": 24, "26+": 12},
+    "as_of": "2026-10-04",
+    "source": "24 CFR 92.504(d)(1): HOME rental on-site inspections every 3 years (1-4 units), 2 years (5-25), annually (26+); months; INSPECTION_DUE",
+    "verified_live": false,
+    "verify": true
+  },
+  "inspection_cadence_lihtc": {
+    "value": 36,
+    "as_of": "2026-10-04",
+    "source": "26 CFR 1.42-5(c)(2): agency inspects at least once every 3 years, 20% of low-income units; months",
+    "verified_live": false,
+    "verify": true
+  },
+  "form_8823_filing_days_after_correction": {
+    "value": 45,
+    "as_of": "2026-10-04",
+    "source": "26 CFR 1.42-5(e): Form 8823 no later than 45 days after the end of the correction period (snippet)",
+    "verified_live": false,
+    "verify": true
+  },
+  "usda_public_body_offer_days": {
+    "value": 180,
+    "as_of": "2026-10-04",
+    "source": "7 CFR 3560.659: offer to nonprofit / public body for 180 days after advertising (snippet); USDA_PUBLIC_BODY_OFFER_WINDOW_END",
+    "verified_live": false,
+    "verify": true
+  },
+  "usda_rd_tenant_notice_days": {
+    "value": 30,
+    "as_of": "2026-10-04",
+    "source": "7 CFR 3560.654: RD notifies tenants within 30 days of a complete prepayment request (snippet)",
+    "verified_live": false,
+    "verify": true
+  },
+  "section_250_notice_days": {
+    "value": [150, 270],
+    "as_of": "2026-10-04",
+    "source": "NHA Section 250 / Notice H 2013-25: 236 and 221(d)(3) BMIR prepayment requires at least 150 and not more than 270 days advance notice (summary); verify",
+    "verified_live": false,
+    "verify": true
+  },
+  "nspire_fail_score": {
+    "value": 60,
+    "as_of": "2026-10-04",
+    "source": "HUD NSPIRE scoring notice (July 2023): fail below 60; DEC referral <= 30 from the pre-NSPIRE 60points procedure (verify whether re-issued)",
+    "verified_live": false,
+    "verify": true
+  },
+  "upb_at_risk_window_months": {
+    "value": 36,
+    "as_of": "2026-10-04",
+    "source": "public_upb_at_risk rule: upb where any owner-cliff PRESSURE event <= 36 months OR covenant_status in {watch, default} OR coterminous_senior_cliff (pipeline-contract Section 5)"
+  },
+  "coterminous_senior_window_months": {
+    "value": 24,
+    "as_of": "2026-10-04",
+    "source": "coterminous_senior_cliff: senior LOAN_MATURITY / HUD_DIRECT / HAP within 24 months of our maturity"
+  },
+  "sponsor_concentration_upb_share": {
+    "value": 0.10,
+    "as_of": "2026-10-04",
+    "source": "Sponsor_Exposure flag when one organization holds >= 10% of book UPB or >= 3 cliffs in 36 months"
+  },
+  "book_verdict_thresholds": {
+    "value": {"WATCH": {"upb_watch_default_share": 0.10, "units_cliff_24mo_share": 0.10}, "STRESSED": {"upb_watch_default_share": 0.25, "units_cliff_24mo_share": 0.25}, "CRITICAL": {"upb_watch_default_share": 0.40, "units_cliff_24mo_share": 0.40}},
+    "as_of": "2026-10-04",
+    "source": "book verdict STABLE / WATCH / STRESSED / CRITICAL from share of book UPB on watch/default and share of book units with an owner cliff <= 24 months; convention"
+  },
+  "av_is_market": {
+    "value": false,
+    "as_of": "2026-10-04",
+    "source": "Oregon Measure 50: Assessed Value is capped and commonly ~50-55% of market in Multnomah; never use AV for value; this pack carries no value on a lead"
+  },
+  "multco_recorder_image_fee": {
+    "value": 3.75,
+    "as_of": "2026-10-04",
+    "source": "Multnomah County DART non-certified document copy (LURA / Notice of ROFR images on documents_to_request.csv); snippet",
+    "verified_live": false,
+    "verify": true
+  },
+  "safmr": {
+    "value": {"97205": {"2br": 1800}, "97202": {"2br": 2050}, "97062": {"2br": 2090}, "97239": {"2br": 2220}, "97140": {"2br": 2420}},
+    "as_of": "2025-10-01",
+    "source": "HUD FY2026 Small Area FMRs, Portland-Vancouver-Hillsboro MSA, 2BR examples (gross rents incl. utilities); used only by the optional NOAH watch rent_to_fmr_ratio and by restricted_noi as a floor",
+    "verified_live": false,
+    "verify": true
+  }
+}

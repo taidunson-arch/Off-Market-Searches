@@ -1,0 +1,112 @@
+# Agency profiles for the <st>-<metro> pack. Copy, replace every <placeholder>, delete profiles the agency will not run.
+# Read by plb/schema.load_agency_profiles(pack_dir). The profile changes behaviour (book sources, expected-book flag,
+# qualified-purchaser / designee / PBCA / QC-administrator status, routes enabled, self-owner tokens, recapture methods,
+# PII level, mandate defaults, Board_Totals variant), not labels. Mark every institutional fact verify until read.
+
+hfa:
+  agency_name: "<State housing finance agency>"
+  roles: [am_officer, compliance_officer, push_program_manager, nofa_program_manager, legal_counsel, pbca_liaison, board_liaison]
+  book_sources: [<hfa_funded_flag_in_inventory>, agency_servicing_extract]
+  expected_book_flag: {column: "<inventory column meaning 'funded by this HFA'>", equals: true}
+  book_kinds: [loan, grant, administered_contract]
+  is_qualified_purchaser: <true|false>      # per the state preservation-notice law (federal/preservation-notice-laws-by-state.md)
+  is_designee: false
+  receives_push_notice: <true|false>
+  administers_qc: true
+  is_pbca: <true|false>                     # verify PBCA identity for the state
+  routes_enabled: [optout_response, notice_compliance, qc_admin, designee_rofr, recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, HTF: full, default: full}   # rental HOME: 24 CFR 92.503(b) all HOME funds repayable; prorata (92.254(a)(5)(ii)) is homebuyer-only
+  statutory_cites: ["<state preservation statute>", "<state preservation rule>", "IRC 42(h)(6), 42(i)(7)", "26 CFR 1.42-5", "42 U.S.C. 1437f(c)(8); 24 CFR 402.8", "<state public records law>"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [<state>_preservation_nofa, lihtc_4pct_gap, zero_pct_rehab_recap]
+  board_totals_variant: loan_book
+  notice_log_source: "<the HFA's own notice log>"
+  qc_log_source: "<the HFA's QC request log>"
+
+city_housing:
+  agency_name: "<City housing bureau>"
+  roles: [am_officer, compliance_officer, push_program_manager, nofa_program_manager, legal_counsel, board_liaison]
+  book_sources: [<city_loan_extract>]
+  expected_book_flag: null
+  book_kinds: [loan, grant]
+  is_qualified_purchaser: <true|false>
+  is_designee: false
+  receives_push_notice: <true|false>
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [optout_response, notice_compliance, designee_rofr, recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, default: full}   # rental HOME: 24 CFR 92.503(b); prorata is homebuyer-only (92.254)
+  statutory_cites: ["<state preservation statute>", "24 CFR 92.252(e) (2025 rule may letter it (d)(4); verify)", "24 CFR 92.503(b) (rental HOME repayment)", "24 CFR 92.254 (homebuyer only)", "24 CFR 570.505", "<city affordability covenant ordinance>", "<state public records law>"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [<city>_preservation_rfp, lihtc_4pct_gap, acquisition_grant]
+  board_totals_variant: loan_book
+  geography_default: city_limits
+  noah_watch_question: true
+
+county:
+  agency_name: "<County housing office>"
+  roles: [am_officer, push_program_manager, nofa_program_manager, legal_counsel, board_liaison]
+  book_sources: [<county_home_cdbg_levy_extract>]
+  expected_book_flag: null
+  book_kinds: [loan, grant]
+  is_qualified_purchaser: <true|false>
+  is_designee: false
+  receives_push_notice: <true|false>
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [optout_response, notice_compliance, designee_rofr, recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, default: full}   # rental HOME: 24 CFR 92.503(b); prorata is homebuyer-only (92.254)
+  statutory_cites: ["<state preservation statute>", "24 CFR 92", "24 CFR 570", "<local bond / levy authority>", "<state public records law>"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [acquisition_grant]
+  board_totals_variant: loan_book
+  geography_default: county
+  noah_watch_question: true
+
+pha_am:
+  agency_name: "<Public housing authority>"
+  roles: [am_officer, pha_development, compliance_officer, legal_counsel, board_liaison]
+  book_sources: [pha_owned_assets, pbv_contracts]
+  expected_book_flag: null
+  book_kinds: [owned_asset, administered_contract]
+  is_qualified_purchaser: false
+  is_designee: <true|false>                 # true when a designee agreement with the HFA exists -> enables designee_rofr
+  receives_push_notice: false
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [recap_committee, servicing_watch, ta_sponsor, nofa_offer]
+  self_owner_tokens: ["<PHA legal name>", "<PHA former name>"]
+  recapture_methods: {default: none}
+  statutory_cites: ["RAD Notice H-2019-09 / PIH-2019-23 REV-4", "Section 18 of the 1937 Act; 24 CFR part 970", "24 CFR 983 (PBV)", "42 U.S.C. 1437f(t)", "<state public records law>"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [lihtc_4pct_gap, rad_conversion]
+  board_totals_variant: owned_assets
+  self_owned_skips: [notice_compliance, designee_rofr, nofa_offer, ta_sponsor]
+
+cdbg_home:
+  agency_name: "<HOME / CDBG participating jurisdiction>"
+  roles: [cpd_program_manager, compliance_officer, am_officer, board_liaison]
+  book_sources: [<pj_home_cdbg_affordability_extract>]
+  expected_book_flag: {column: programs, intersects: [HOME, CDBG]}
+  book_kinds: [grant, loan]
+  is_qualified_purchaser: false
+  is_designee: false
+  receives_push_notice: false
+  administers_qc: false
+  is_pbca: false
+  routes_enabled: [recap_committee, servicing_watch, nofa_offer, ta_sponsor]
+  self_owner_tokens: []
+  recapture_methods: {HOME: full, HOME_HOMEBUYER: prorata_reducing, CDBG: cdbg_fmv_share, HTF: full, default: full}   # rental HOME: 24 CFR 92.503(b) all HOME funds repayable; prorata (92.254(a)(5)(ii)) is homebuyer-only
+  statutory_cites: ["24 CFR 92.252(e) (2025 rule may letter it (d)(4); verify)", "24 CFR 92.503(b) (rental HOME repayment)", "24 CFR 92.254(a)(5) (homebuyer only)", "24 CFR 92.504(d)", "24 CFR 93.302", "24 CFR 570.505; 570.208", "<state public records law>"]
+  pii_level_public_packet: organization_and_registered_agent
+  mandate_file: mandate.json
+  mandate_default_products: [<pj>_home_cdbg_reinvestment]
+  board_totals_variant: loan_book
+  home_rule_vintage_note: "store pre/post 2025 HOME final rule per project (post-2025 Table 1: <$25k 5y / $25-50k 10y / >$50k or refi 15y / new construction 20y; lettering may be (d)(4) — verify)"

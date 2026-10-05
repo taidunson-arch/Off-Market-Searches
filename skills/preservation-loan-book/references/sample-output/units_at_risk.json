@@ -1,0 +1,563 @@
+{
+  "as_of": "2026-10-04",
+  "agency_profile": "hfa",
+  "board_totals_variant": "loan_book",
+  "columns": [
+    "properties",
+    "units_at_risk",
+    "hap_units_at_risk",
+    "prac_units_at_risk",
+    "other_ra_units",
+    "psh_units_at_risk",
+    "public_upb_at_risk",
+    "public_grant_at_risk",
+    "being_preserved_units"
+  ],
+  "by_owner_cliff_band": {
+    "OVERDUE": {
+      "properties": 15,
+      "units_at_risk": 778.0,
+      "hap_units_at_risk": 0,
+      "prac_units_at_risk": 19.0,
+      "other_ra_units": 118.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "CRITICAL": {
+      "properties": 22,
+      "units_at_risk": 1136.0,
+      "hap_units_at_risk": 95.0,
+      "prac_units_at_risk": 0,
+      "other_ra_units": 71.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 850000.0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "URGENT": {
+      "properties": 20,
+      "units_at_risk": 1579.0,
+      "hap_units_at_risk": 291.0,
+      "prac_units_at_risk": 375.0,
+      "other_ra_units": 0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 5600000.0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "APPROACHING": {
+      "properties": 30,
+      "units_at_risk": 2197.0,
+      "hap_units_at_risk": 385.0,
+      "prac_units_at_risk": 173.0,
+      "other_ra_units": 14.0,
+      "psh_units_at_risk": 14.0,
+      "public_upb_at_risk": 4880000.0,
+      "public_grant_at_risk": 480000.0,
+      "being_preserved_units": 0
+    },
+    "MONITOR": {
+      "properties": 39,
+      "units_at_risk": 2307.0,
+      "hap_units_at_risk": 534.0,
+      "prac_units_at_risk": 15.0,
+      "other_ra_units": 48.0,
+      "psh_units_at_risk": 17.0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "SCHEDULED": {
+      "properties": 75,
+      "units_at_risk": 5533.0,
+      "hap_units_at_risk": 1867.0,
+      "prac_units_at_risk": 19.0,
+      "other_ra_units": 465.0,
+      "psh_units_at_risk": 98.0,
+      "public_upb_at_risk": 1500000.0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "BEYOND": {
+      "properties": 275,
+      "units_at_risk": 19767.0,
+      "hap_units_at_risk": 1312.0,
+      "prac_units_at_risk": 148.0,
+      "other_ra_units": 1817.0,
+      "psh_units_at_risk": 808.0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 1100000.0,
+      "being_preserved_units": 0
+    },
+    "stale_contract_date_verify": {
+      "properties": 14,
+      "units_at_risk": 269.0,
+      "hap_units_at_risk": 30.0,
+      "prac_units_at_risk": 229.0,
+      "other_ra_units": 0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "no_dated_cliff": {
+      "properties": 278,
+      "units_at_risk": 8655.0,
+      "hap_units_at_risk": 0,
+      "prac_units_at_risk": 0,
+      "other_ra_units": 158.0,
+      "psh_units_at_risk": 22.0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    }
+  },
+  "by_jurisdiction": {
+    "Multnomah": {
+      "OVERDUE": {
+        "properties": 8,
+        "units_at_risk": 568.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 19.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "CRITICAL": {
+        "properties": 16,
+        "units_at_risk": 679.0,
+        "hap_units_at_risk": 91.0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 6.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 850000.0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "URGENT": {
+        "properties": 14,
+        "units_at_risk": 1253.0,
+        "hap_units_at_risk": 233.0,
+        "prac_units_at_risk": 248.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 5600000.0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "APPROACHING": {
+        "properties": 25,
+        "units_at_risk": 1904.0,
+        "hap_units_at_risk": 299.0,
+        "prac_units_at_risk": 144.0,
+        "other_ra_units": 14.0,
+        "psh_units_at_risk": 14.0,
+        "public_upb_at_risk": 4880000.0,
+        "public_grant_at_risk": 480000.0,
+        "being_preserved_units": 0
+      },
+      "MONITOR": {
+        "properties": 20,
+        "units_at_risk": 860.0,
+        "hap_units_at_risk": 309.0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 8.0,
+        "psh_units_at_risk": 17.0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "SCHEDULED": {
+        "properties": 48,
+        "units_at_risk": 3473.0,
+        "hap_units_at_risk": 1515.0,
+        "prac_units_at_risk": 11.0,
+        "other_ra_units": 294.0,
+        "psh_units_at_risk": 98.0,
+        "public_upb_at_risk": 1500000.0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "BEYOND": {
+        "properties": 198,
+        "units_at_risk": 14283.0,
+        "hap_units_at_risk": 1146.0,
+        "prac_units_at_risk": 52.0,
+        "other_ra_units": 1191.0,
+        "psh_units_at_risk": 655.0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 1100000.0,
+        "being_preserved_units": 0
+      },
+      "stale_contract_date_verify": {
+        "properties": 10,
+        "units_at_risk": 200.0,
+        "hap_units_at_risk": 30.0,
+        "prac_units_at_risk": 163.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "no_dated_cliff": {
+        "properties": 178,
+        "units_at_risk": 5946.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 56.0,
+        "psh_units_at_risk": 16.0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      }
+    },
+    "Washington": {
+      "OVERDUE": {
+        "properties": 2,
+        "units_at_risk": 35.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 20.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "CRITICAL": {
+        "properties": 3,
+        "units_at_risk": 381.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 8.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "URGENT": {
+        "properties": 4,
+        "units_at_risk": 179.0,
+        "hap_units_at_risk": 58.0,
+        "prac_units_at_risk": 21.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "APPROACHING": {
+        "properties": 4,
+        "units_at_risk": 255.0,
+        "hap_units_at_risk": 48.0,
+        "prac_units_at_risk": 29.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "MONITOR": {
+        "properties": 9,
+        "units_at_risk": 754.0,
+        "hap_units_at_risk": 195.0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 40.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "SCHEDULED": {
+        "properties": 15,
+        "units_at_risk": 1504.0,
+        "hap_units_at_risk": 179.0,
+        "prac_units_at_risk": 8.0,
+        "other_ra_units": 42.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "BEYOND": {
+        "properties": 46,
+        "units_at_risk": 3525.0,
+        "hap_units_at_risk": 56.0,
+        "prac_units_at_risk": 14.0,
+        "other_ra_units": 274.0,
+        "psh_units_at_risk": 56.0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "stale_contract_date_verify": {
+        "properties": 3,
+        "units_at_risk": 54.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 52.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "no_dated_cliff": {
+        "properties": 69,
+        "units_at_risk": 2110.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 82.0,
+        "psh_units_at_risk": 6.0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      }
+    },
+    "Clackamas": {
+      "OVERDUE": {
+        "properties": 5,
+        "units_at_risk": 175.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 98.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "CRITICAL": {
+        "properties": 3,
+        "units_at_risk": 76.0,
+        "hap_units_at_risk": 4.0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 57.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "URGENT": {
+        "properties": 2,
+        "units_at_risk": 147.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 106.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "APPROACHING": {
+        "properties": 1,
+        "units_at_risk": 38.0,
+        "hap_units_at_risk": 38.0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "MONITOR": {
+        "properties": 10,
+        "units_at_risk": 693.0,
+        "hap_units_at_risk": 30.0,
+        "prac_units_at_risk": 15.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "SCHEDULED": {
+        "properties": 12,
+        "units_at_risk": 556.0,
+        "hap_units_at_risk": 173.0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 129.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "BEYOND": {
+        "properties": 31,
+        "units_at_risk": 1959.0,
+        "hap_units_at_risk": 110.0,
+        "prac_units_at_risk": 82.0,
+        "other_ra_units": 352.0,
+        "psh_units_at_risk": 97.0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "stale_contract_date_verify": {
+        "properties": 1,
+        "units_at_risk": 15.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 14.0,
+        "other_ra_units": 0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      },
+      "no_dated_cliff": {
+        "properties": 31,
+        "units_at_risk": 599.0,
+        "hap_units_at_risk": 0,
+        "prac_units_at_risk": 0,
+        "other_ra_units": 20.0,
+        "psh_units_at_risk": 0,
+        "public_upb_at_risk": 0,
+        "public_grant_at_risk": 0,
+        "being_preserved_units": 0
+      }
+    }
+  },
+  "by_year": {
+    "2026": {
+      "properties": 7,
+      "units_at_risk": 475.0,
+      "hap_units_at_risk": 0,
+      "prac_units_at_risk": 19.0,
+      "other_ra_units": 90.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2027": {
+      "properties": 25,
+      "units_at_risk": 1515.0,
+      "hap_units_at_risk": 338.0,
+      "prac_units_at_risk": 105.0,
+      "other_ra_units": 65.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 4050000.0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2028": {
+      "properties": 17,
+      "units_at_risk": 1204.0,
+      "hap_units_at_risk": 138.0,
+      "prac_units_at_risk": 270.0,
+      "other_ra_units": 0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 2400000.0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2029": {
+      "properties": 32,
+      "units_at_risk": 2287.0,
+      "hap_units_at_risk": 325.0,
+      "prac_units_at_risk": 173.0,
+      "other_ra_units": 22.0,
+      "psh_units_at_risk": 14.0,
+      "public_upb_at_risk": 4880000.0,
+      "public_grant_at_risk": 480000.0,
+      "being_preserved_units": 0
+    },
+    "2030": {
+      "properties": 23,
+      "units_at_risk": 1702.0,
+      "hap_units_at_risk": 243.0,
+      "prac_units_at_risk": 15.0,
+      "other_ra_units": 40.0,
+      "psh_units_at_risk": 5.0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2031": {
+      "properties": 15,
+      "units_at_risk": 598.0,
+      "hap_units_at_risk": 344.0,
+      "prac_units_at_risk": 0,
+      "other_ra_units": 18.0,
+      "psh_units_at_risk": 95.0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2032": {
+      "properties": 14,
+      "units_at_risk": 746.0,
+      "hap_units_at_risk": 335.0,
+      "prac_units_at_risk": 0,
+      "other_ra_units": 166.0,
+      "psh_units_at_risk": 15.0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2033": {
+      "properties": 16,
+      "units_at_risk": 641.0,
+      "hap_units_at_risk": 231.0,
+      "prac_units_at_risk": 8.0,
+      "other_ra_units": 68.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 1500000.0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2034": {
+      "properties": 18,
+      "units_at_risk": 1905.0,
+      "hap_units_at_risk": 425.0,
+      "prac_units_at_risk": 11.0,
+      "other_ra_units": 98.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2035": {
+      "properties": 14,
+      "units_at_risk": 1540.0,
+      "hap_units_at_risk": 725.0,
+      "prac_units_at_risk": 0,
+      "other_ra_units": 67.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    },
+    "2036": {
+      "properties": 13,
+      "units_at_risk": 606.0,
+      "hap_units_at_risk": 68.0,
+      "prac_units_at_risk": 0,
+      "other_ra_units": 69.0,
+      "psh_units_at_risk": 0,
+      "public_upb_at_risk": 0,
+      "public_grant_at_risk": 0,
+      "being_preserved_units": 0
+    }
+  },
+  "headline": {
+    "properties": 87,
+    "units_at_risk": 5690,
+    "hap_units_at_risk": 771,
+    "prac_units_at_risk": 567,
+    "psh_units_at_risk": 14,
+    "public_upb_at_risk": 11330000.0,
+    "window_months": 36
+  },
+  "public_upb_total": 15480000.0,
+  "public_upb_on_watch": 12830000.0,
+  "book_verdict": "CRITICAL",
+  "book_verdict_rule": "CRITICAL >= 50% of book UPB on watch/default or >= 25% of units with a cliff <= 24 mo; STRESSED >= 25% / 12%; WATCH >= 10% / 5%; else STABLE",
+  "kpi": {
+    "units_preserved_since_prior": 0,
+    "units_lost_since_prior": 0,
+    "flips": {}
+  }
+}

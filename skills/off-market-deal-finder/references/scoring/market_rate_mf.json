@@ -1,0 +1,163 @@
+{
+  "_schema": "off-market-deal-finder class scoring v2.0. See references/pipeline-contract.md Section 11 for the band schema and references/scoring/shared_adjustments.json for multipliers, tiers, caps and suppressions. Weights sum to 100.",
+  "class": "market_rate_mf",
+  "version": "2.0",
+  "total_weight": 100,
+  "factors": [
+    {
+      "name": "capital_stack_timing",
+      "weight": 25,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 25,
+      "bands": [
+        {"id": "debt_0_12", "event_type": "LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 12]}, "points": 17, "reading": "Balloon inside a year; the owner is already talking to lenders or brokers.", "lever": "Certainty of close before maturity; assumption if agency/HUD."},
+        {"id": "debt_12_24", "event_type": "LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [12, 24]}, "points": 12, "reading": "Refinance planning window; the owner knows the rate shock is coming.", "lever": "Quiet, pre-marketing conversation 9-18 months out."},
+        {"id": "debt_24_36", "event_type": "LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [24, 36]}, "points": 7, "reading": "On the horizon; not yet urgent.", "lever": "Relationship building; share refi math."},
+        {"id": "debt_36_60", "event_type": "LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [36, 60]}, "points": 3, "reading": "Monitor only.", "lever": "Quarterly touch."},
+        {"id": "hud_direct_0_12", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 12]}, "points": 17, "reading": "Same as LOAN_MATURITY for ex-regulated or mixed assets.", "lever": "As above."},
+        {"id": "hud_direct_12_24", "event_type": "HUD_DIRECT_LOAN_MATURITY", "signal": null, "match": {"field": "months_out", "op": "between", "value": [12, 24]}, "points": 12, "reading": "As above.", "lever": "As above."},
+        {"id": "matured_balloon_any", "event_type": "MATURED_BALLOON", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 17, "reading": "Past maturity; every month is borrowed time from the servicer.", "lever": "Speed and certainty."}
+      ],
+      "modifiers": [
+        {"id": "io_expiry_12", "event_type": "IO_EXPIRATION", "signal": null, "match": {"field": "months_out", "op": "between", "value": [0, 12]}, "points": 3, "reading": "Payment jumps 15-25% when amortization starts.", "lever": "Cash-on-cash conversation."},
+        {"id": "floating_bridge", "event_type": null, "signal": "lender_type", "match": {"any": [{"field": "lender_type", "op": "eq", "value": "debt_fund_bridge"}, {"field": "rate_type", "op": "in", "value": ["floating", "ARM", "SARM"]}]}, "points": 3, "reading": "Floating-rate debt with cap replacement cost and extension tests.", "lever": "Offer the exit the extension test may deny."},
+        {"id": "floating_2021_22", "event_type": null, "signal": "origination_year", "match": {"all": [{"field": "rate_type", "op": "in", "value": ["floating", "ARM", "SARM"]}, {"field": "origination_year", "op": "in", "value": [2021, 2022]}]}, "points": 2, "reading": "Bought at peak pricing with SOFR+300-450 bridge debt; the most motivated market-rate cohort.", "lever": "Recap or sale before final maturity."},
+        {"id": "prepay_open_12", "event_type": "PREPAY_WINDOW_OPEN", "signal": null, "match": {"field": "months_out", "op": "between", "value": [-6, 12]}, "points": 2, "reading": "Yield maintenance or lockout burning off; sale and cash-out refi become economic.", "lever": "Contact 3-6 months before the open date."},
+        {"id": "rate_spread_200", "event_type": null, "signal": "rate_spread_bp", "match": {"all": [{"field": "rate_spread_bp", "op": "gt", "value": 200}, {"field": "first_debt_months_out", "op": "lt", "value": 36}]}, "points": 2, "reading": "Coupon far below market; refi proceeds shrink sharply.", "lever": "If assumable, the low coupon is your edge; tag assumption_play."}
+      ],
+      "notes": "Base points from the nearest DEBT event; modifiers additive; cap 25; then basis multiplier of the governing event."
+    },
+    {
+      "name": "refinance_gap_coverage",
+      "weight": 20,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 20,
+      "bands": [
+        {"id": "gap_gt_25", "event_type": null, "signal": "refi_gap_pct", "match": {"field": "refi_gap_pct", "op": "gt", "value": 0.25}, "points": 14, "reading": "Owner must inject 25%+ of the balance to refinance at par.", "lever": "Sale or recap is the only path; model it for them."},
+        {"id": "gap_10_25", "event_type": null, "signal": "refi_gap_pct", "match": {"field": "refi_gap_pct", "op": "between", "value": [0.1, 0.25], "inclusive": true}, "points": 10, "reading": "Partial paydown required; painful but possible.", "lever": "Compare paydown to sale proceeds."},
+        {"id": "gap_0_10", "event_type": null, "signal": "refi_gap_pct", "match": {"field": "refi_gap_pct", "op": "between", "value": [0.0, 0.1]}, "points": 4, "reading": "Refinanceable with friction.", "lever": "Rate shock conversation."},
+        {"id": "no_gap_but_12mo", "event_type": null, "signal": "refi_gap_pct", "match": {"all": [{"field": "refi_gap_pct", "op": "lte", "value": 0.0}, {"field": "first_debt_months_out", "op": "lte", "value": 12}]}, "points": 3, "reading": "Refinanceable; maturity alone is a weak seller signal.", "lever": "Assumption or portfolio conversation."}
+      ],
+      "modifiers": [
+        {"id": "dscr_lt_1", "event_type": null, "signal": "est_dscr_refi", "match": {"field": "est_dscr_refi", "op": "lt", "value": 1.0}, "points": 4, "reading": "Property cannot cover debt service at today's rates.", "lever": "Lender-aware offer."},
+        {"id": "dscr_1_12", "event_type": null, "signal": "est_dscr_refi", "match": {"field": "est_dscr_refi", "op": "between", "value": [1.0, 1.2]}, "points": 2, "reading": "Below agency/bank floors.", "lever": "Show the sizing math."},
+        {"id": "extension_test_fail", "event_type": null, "signal": "extension_test_pass", "match": {"field": "extension_test_pass", "op": "eq", "value": false}, "points": 2, "reading": "Bridge extension test fails; forced sale or recap likely.", "lever": "Be the recap."}
+      ],
+      "post_multipliers": [
+        {"id": "noi_source", "description": "x1.0 reported DSCR/NOI (tape or user-supplied), x0.7 benchmark estimate (shared_adjustments.noi_source_weight)"},
+        {"id": "maturity_proximity", "description": "x1.0 if first_debt_months_out < 24, x0.5 if 24-60, x0 if no DEBT event inside horizon"}
+      ],
+      "notes": "Formulas in references/capital-stack-math.md Section 5."
+    },
+    {
+      "name": "hard_distress_events",
+      "weight": 20,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 20,
+      "bands": [
+        {"id": "special_servicing", "event_type": "SPECIAL_SERVICING", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 20, "reading": "Default or imminent default; special servicer controls the workout.", "lever": "Register with the special servicer; owner outreach may be moot."},
+        {"id": "matured_balloon_np", "event_type": "MATURED_BALLOON", "signal": null, "match": {"field": "value", "op": "eq", "value": 5}, "points": 20, "reading": "Non-performing matured balloon.", "lever": "Note sale or DPO conversation with the servicer."},
+        {"id": "nod_fresh", "event_type": "NOD_RECORDED", "signal": null, "match": {"field": "days_since", "op": "between", "value": [0, 101]}, "points": 20, "reading": "Lender elected to sell; 120-day clock running.", "lever": "First 45 days: owner still controls the outcome."},
+        {"id": "nod_stale", "event_type": "NOD_RECORDED", "signal": null, "match": {"field": "days_since", "op": "gt", "value": 100}, "points": 14, "reading": "Heading to sale without rescission.", "lever": "Lender-consent paths; prepare for REO track."},
+        {"id": "receiver", "event_type": "RECEIVER_APPOINTED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 18, "reading": "Court-appointed receiver operates the asset; owner equity likely impaired.", "lever": "Route lender_counterparty; register as qualified buyer within 30 days."},
+        {"id": "judicial_or_lis_pendens", "event_type": "JUDICIAL_FORECLOSURE_FILED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 17, "reading": "Commercial lender preserving deficiency/guaranty via ORS 88; 6-12 months to judgment.", "lever": "First 90 days, before a receiver or bankruptcy strategy locks in."},
+        {"id": "lis_pendens", "event_type": "LIS_PENDENS", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 17, "reading": "Title-affecting suit recorded.", "lever": "Pull the complaint; identify the liquidity-seeking party."},
+        {"id": "bankruptcy_sare", "event_type": "BANKRUPTCY_FILED", "signal": null, "match": {"field": "detail", "op": "in", "value": ["ch11", "ch11_sare"]}, "points": 15, "reading": "Stalling foreclosure; plan or 363 sale within 90-180 days.", "lever": "Debtor's counsel; counsel_only gate."},
+        {"id": "matured_balloon_perf", "event_type": "MATURED_BALLOON", "signal": null, "match": {"field": "value", "op": "eq", "value": 4}, "points": 14, "reading": "Performing but past maturity; extension or forced sale pending.", "lever": "Offer certainty the servicer wants."},
+        {"id": "ucc_art9", "event_type": "UCC_ART9_SALE", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 14, "reading": "Mezz lender about to take the owning entity.", "lever": "Mezz lender is the counterparty."},
+        {"id": "tax_foreclosure_list", "event_type": "TAX_FORECLOSURE_LIST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 12, "reading": "Three years of unpaid taxes on an apartment is not an oversight.", "lever": "Payoff-at-closing structure."},
+        {"id": "loan_modified_12", "event_type": "LOAN_MODIFIED", "signal": null, "match": {"field": "days_since", "op": "between", "value": [0, 366]}, "points": 10, "reading": "Extension already negotiated; 1-2 years of runway then forced resolution.", "lever": "Position for the next maturity."},
+        {"id": "mechanics_lien_suit", "event_type": "MECHANICS_LIEN", "signal": null, "match": {"field": "detail", "op": "eq", "value": "suit_filed"}, "points": 8, "reading": "Stalled renovation with a 120-day clock now in court.", "lever": "Failed value-add plan; buy the project."},
+        {"id": "watchlist", "event_type": "WATCHLIST", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 7, "reading": "Servicer trigger hit (DSCR, occupancy, maturity).", "lever": "Early relationship."}
+      ],
+      "modifiers": [
+        {"id": "individual_guarantor", "event_type": "JUDICIAL_FORECLOSURE_FILED", "signal": null, "match": {"field": "detail", "op": "eq", "value": "individual_guarantor"}, "points": 2, "reading": "Personal exposure raises willingness to cooperate on a short sale or assumption.", "lever": "Guarantor-relief framing."},
+        {"id": "ucc_mezz_pledge", "event_type": "UCC_MEZZ_PLEDGE", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 3, "reading": "Hidden leverage above the recorded first; total LTV 10-20 points higher than it looks.", "lever": "Raise est_ltv; expect a harder refi."}
+      ]
+    },
+    {
+      "name": "owner_sponsor_profile",
+      "weight": 15,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 15,
+      "bands": [
+        {"id": "dissolution_partition", "event_type": "DISSOLUTION_FILED", "signal": null, "match": {"any": [{"field": "event_present", "op": "eq", "value": "DISSOLUTION_FILED"}, {"field": "event_present", "op": "eq", "value": "PARTITION_FILED"}]}, "points": 15, "reading": "Partners deadlocked or winding up; the asset must be sold or bought out.", "lever": "All-cash certainty to both sides; expect court approval."},
+        {"id": "sponsor_stress", "event_type": null, "signal": "sponsor_loans_maturing_36mo", "match": {"field": "sponsor_loans_maturing_36mo", "op": "gte", "value": 3}, "points": 12, "reading": "Portfolio-level maturity wall; healthy assets get sold to raise liquidity.", "lever": "Approach on the healthy asset, not the sick one."},
+        {"id": "probate_principal", "event_type": "PROBATE_FILED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 12, "reading": "Estate of the principal; heirs rarely want to run apartments.", "lever": "Estate counsel after 60-120 days."},
+        {"id": "admin_dissolved_gt_1y", "event_type": "ENTITY_ADMIN_DISSOLVED", "signal": null, "match": {"field": "days_since", "op": "gt", "value": 365}, "points": 9, "reading": "Owner entity inactive over a year; neglect, death or dispute.", "lever": "Patient buyer who can wait for reinstatement."},
+        {"id": "admin_dissolved_lt_1y", "event_type": "ENTITY_ADMIN_DISSOLVED", "signal": null, "match": {"field": "days_since", "op": "lte", "value": 365}, "points": 6, "reading": "Missed annual report; could be clerical.", "lever": "Recheck quarterly."},
+        {"id": "single_asset_llc_7y_bank", "event_type": null, "signal": "single_asset_llc_age_bank_debt", "match": {"all": [{"field": "owner_type", "op": "eq", "value": "single_asset_llc"}, {"field": "hold_years", "op": "gt", "value": 7}, {"field": "lender_type", "op": "eq", "value": "bank_cu"}]}, "points": 8, "reading": "Entity formed at acquisition with a bank balloon now past typical term.", "lever": "Maturity math and 1031/DST options."},
+        {"id": "depreciation_exhausted", "event_type": "DEPRECIATION_EXHAUSTED", "signal": null, "match": {"field": "event_present", "op": "eq", "value": "DEPRECIATION_EXHAUSTED"}, "points": 8, "reading": "No shelter left; full recapture on sale; estate-planning stage.", "lever": "1031, DST, UPREIT, installment or seller carry, not price."},
+        {"id": "trust_estate", "event_type": null, "signal": "owner_type", "match": {"field": "owner_type", "op": "eq", "value": "trust_estate"}, "points": 6, "reading": "Trust-held; successor trustees often prefer liquidity.", "lever": "Trustee letter."},
+        {"id": "out_of_state_far", "event_type": "ABSENTEE_TIER", "signal": null, "match": {"field": "value", "op": "eq", "value": "far"}, "points": 6, "reading": "Distant or non-Pacific foreign LLC; Oregon's regulatory load is a reason to exit.", "lever": "Non-core market exit."},
+        {"id": "out_of_state", "event_type": "ABSENTEE_TIER", "signal": null, "match": {"field": "value", "op": "eq", "value": "out_of_state"}, "points": 4, "reading": "Out-of-state sponsor.", "lever": "Mail then call."},
+        {"id": "mgmt_change", "event_type": "MGMT_CHANGE", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 3, "reading": "Operational reset or pre-sale cleanup.", "lever": "New PM as relationship entry."}
+      ],
+      "modifiers": [
+        {"id": "sibling_sale", "event_type": null, "signal": "sibling_asset_sold_12mo", "match": {"field": "sibling_asset_sold_12mo", "op": "eq", "value": true}, "points": 3, "reading": "Sponsor family just sold another asset; consolidating or exiting.", "lever": "Ask about the rest of the portfolio."}
+      ]
+    },
+    {
+      "name": "operating_regulatory_pressure",
+      "weight": 10,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "bands": [
+        {"id": "tax_3y", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "gte", "value": 3}, "points": 10, "reading": "Three years delinquent.", "lever": "Payoff at closing."},
+        {"id": "code_lien_referral", "event_type": "CODE_LIEN_REFERRAL", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 10, "reading": "City referred liens to foreclosure; narrow redemption window.", "lever": "Act before the council vote."},
+        {"id": "tax_2y", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "eq", "value": 2}, "points": 7, "reading": "Two years delinquent; stress visible, county not yet involved.", "lever": "Best tax window."},
+        {"id": "dangerous_or_2_housing", "event_type": "DANGEROUS_BUILDING", "signal": "code_cases_open", "match": {"any": [{"field": "event_present", "op": "eq", "value": "DANGEROUS_BUILDING"}, {"field": "code_cases_open", "op": "gte", "value": 2}]}, "points": 7, "reading": "Deferred maintenance with escalating fees.", "lever": "Capex the owner cannot fund."},
+        {"id": "listing_withdrawn_6", "event_type": "LISTING_WITHDRAWN", "signal": null, "match": {"field": "days_since", "op": "lte", "value": 183}, "points": 7, "reading": "Tried to sell, missed price; exclusive may have lapsed.", "lever": "Confirm the exclusive ended; use last ask as a ceiling."},
+        {"id": "insurance_confirmed", "event_type": "INSURANCE_NONRENEWAL_CONFIRMED", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 6, "reading": "Cannot bind compliant coverage; blocks refinance.", "lever": "Buyer with a program in place."},
+        {"id": "rent_trap_20", "event_type": null, "signal": "rent_gap_pct", "match": {"all": [{"field": "rent_gap_pct", "op": "gt", "value": 0.2}, {"field": "building_age_years", "op": "gt", "value": 15}]}, "points": 6, "reading": "Below-market rents the owner cannot close faster than the state cap.", "lever": "Value-add buyer pays for the gap."},
+        {"id": "tax_1y", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "eq", "value": 1}, "points": 4, "reading": "One missed installment.", "lever": "Corroboration only."},
+        {"id": "listing_withdrawn_12", "event_type": "LISTING_WITHDRAWN", "signal": null, "match": {"field": "days_since", "op": "between", "value": [184, 366]}, "points": 4, "reading": "Withdrawn 6-12 months ago; owner re-anchoring.", "lever": "Soft re-approach."},
+        {"id": "tenant_litigation_2", "event_type": null, "signal": "tenant_cases_24mo", "match": {"field": "tenant_cases_24mo", "op": "gte", "value": 2}, "points": 4, "reading": "Repeatedly cited landlord spending on defense.", "lever": "Regulatory-fatigue angle."},
+        {"id": "one_housing_case", "event_type": "CODE_CASE_OPEN", "signal": null, "match": {"field": "detail", "op": "in", "value": ["housing", "maintenance"]}, "points": 3, "reading": "One open case.", "lever": "Corroboration."}
+      ],
+      "modifiers": [
+        {"id": "rent_trap_portland", "event_type": null, "signal": "inside_portland_city_limits", "match": {"all": [{"field": "rent_gap_pct", "op": "gt", "value": 0.2}, {"field": "inside_portland_city_limits", "op": "eq", "value": true}]}, "points": 3, "reading": "Any 10%+ increase triggers $2,900-$4,500/unit relocation liability.", "lever": "Relocation exposure is a line in your underwriting and their fatigue."}
+      ]
+    },
+    {
+      "name": "signal_stacking",
+      "weight": 10,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "bands": [
+        {"id": "families_2", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "eq", "value": 2}, "points": 5, "reading": "Two independent records.", "lever": "Lead with the known fact."},
+        {"id": "families_3", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "eq", "value": 3}, "points": 8, "reading": "Three independent records.", "lever": "Multi-channel."},
+        {"id": "families_4plus", "event_type": null, "signal": "independent_families", "match": {"field": "independent_families", "op": "gte", "value": 4}, "points": 10, "reading": "Converging distress.", "lever": "Top priority."}
+      ],
+      "modifiers": [],
+      "notes": "Events older than 180 days count 50% except permanent states (shared_adjustments.decay)."
+    }
+  ],
+  "hard_filters": [
+    {"id": "active_listing", "condition": "on_market == true", "effect": "excluded"},
+    {"id": "in_development", "condition": "status == In Development", "effect": "excluded"},
+    {"id": "active_bankruptcy", "event_type": "BANKRUPTCY_FILED", "condition": "case active", "effect": "compliance_gates += counsel_only"}
+  ],
+  "routes": [
+    {"id": "cushion_le_0", "condition": "equity_cushion_pct <= 0", "route": "lender_counterparty"},
+    {"id": "assumable_low_coupon", "condition": "assumable_debt == true AND rate_spread_bp > 150", "effect": "signals += assumption_play"},
+    {"id": "sponsor_family_propagation", "condition": "sponsor_loans_maturing_36mo >= 3 requires >= 2 independent indicators across the sponsor family before scoring; apply to every asset of the family"}
+  ],
+  "quality_rules": [
+    "No DEBT and no REGULATORY event inside horizon -> tier cap C (shared_adjustments.caps.no_debt_no_reg_mf).",
+    "Insurance non-renewal is scored only when confirmed; never inferred from geography.",
+    "A recorded Modification/Extension or Reconveyance re-opens the maturity question: re-derive before scoring timing."
+  ]
+}

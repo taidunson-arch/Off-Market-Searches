@@ -1,0 +1,32 @@
+{
+  "_comment": "Mirrors the SKILL.md inputs. Paths are relative to where you run scripts/run_pipeline.py. Nothing here is fetched: drop downloaded files into `inbox` or list them in `local_datasets`.",
+  "market_id": "us-or-multnomah",
+  "pack": "references/sources/oregon-portland",
+  "asset_class": "affordable_regulated",
+  "query_type": "maturity",
+  "geography_mode": "metro_core",
+  "counties": ["41051", "41067", "41005"],
+  "target_city": null,
+  "horizon_years": 5,
+  "regulatory_horizon_years": 5,
+  "unit_range": [5, null],
+  "price_or_value_band": null,
+  "strict_size_fit": false,
+  "programs": null,
+  "lender_types": null,
+  "owner_types_include": null,
+  "owner_types_exclude": ["housing_authority"],
+  "local_datasets": [
+    "/tmp/claude-0/-home-user/7bb5c89e-a260-588a-815c-3462cdc087de/scratchpad/d/Oregon_Affordable_Housing_Inventory_20261002.csv"
+  ],
+  "inbox": "./omdf/inbox",
+  "zip_crosswalk": null,
+  "prior_run": null,
+  "paid_sources_available": [],
+  "buyer_profile": "principal",
+  "max_results": 100,
+  "handoff_tiers": ["A", "B", "C"],
+  "workbook_name": "Portland_Affordable_TriCounty_5yr_Targets.xlsx",
+  "out_dir": "runs",
+  "as_of_date": null
+}

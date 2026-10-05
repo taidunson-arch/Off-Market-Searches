@@ -1,0 +1,112 @@
+{
+  "_schema": "preservation-loan-book optional NOAH watch v1.0 (class noah_unregulated). Loaded only with --noah-watch / config noah_watch: true. Scores unregulated 5+ unit properties absent from OHCS/HUD/NHPD as candidates for public acquisition or acquisition-rehab grants, never as a buyer's refinance screen. Only route: nofa_offer (acquisition_grant product). No outreach. See references/noah-watch.md. Weights sum to 100.",
+  "class": "noah_unregulated",
+  "applies_to_asset_class": ["noah_unregulated"],
+  "version": "1.0",
+  "total_weight": 100,
+  "factors": [
+    {
+      "name": "units_5plus_unregulated",
+      "weight": 20,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 20,
+      "floor": 0,
+      "bands": [
+        {"id": "units_5_19_unregulated", "event_type": null, "signal": "units", "match": {"all": [{"field": "units", "op": "between", "value": [5, 20]}, {"field": "programs_list", "op": "absent"}]}, "points": 12, "reading": "Small unregulated building with no program events: naturally occurring affordable stock the market can reprice at any lease turn.", "intervention": "preservation_nofa_invitation (acquisition_grant); NOAH OHAF bridge where listed in mandate.json"},
+        {"id": "units_20_plus_unregulated", "event_type": null, "signal": "units", "match": {"all": [{"field": "units", "op": "gte", "value": 20}, {"field": "programs_list", "op": "absent"}]}, "points": 20, "reading": "Twenty or more unregulated units: a public acquisition that would add a whole building to the regulated inventory.", "intervention": "preservation_nofa_invitation (acquisition_grant)"}
+      ],
+      "modifiers": [],
+      "notes": "programs_list absent means no OHCS/HUD/NHPD program is attached to the property; a property with any program belongs in affordable_public_am, never here."
+    },
+    {
+      "name": "rent_vs_fmr_gap",
+      "weight": 25,
+      "take": "max",
+      "event_driven": false,
+      "apply_basis_multiplier": false,
+      "cap": 25,
+      "floor": 0,
+      "bands": [
+        {"id": "rent_to_fmr_le_085", "event_type": null, "signal": "rent_to_fmr_ratio", "match": {"field": "rent_to_fmr_ratio", "op": "lte", "value": 0.85}, "points": 25, "reading": "In-place rents at or below 85% of FMR / SAFMR: deeply affordable today and most exposed to repricing on sale.", "intervention": "preservation_nofa_invitation (acquisition_grant); rent-restriction covenant on acquisition"},
+        {"id": "rent_to_fmr_085_095", "event_type": null, "signal": "rent_to_fmr_ratio", "match": {"field": "rent_to_fmr_ratio", "op": "between", "value": [0.85, 0.95], "inclusive": true}, "points": 15, "reading": "Rents 85-95% of FMR: affordable with a thin margin.", "intervention": "preservation_nofa_invitation (acquisition_grant)"}
+      ],
+      "modifiers": [],
+      "notes": "rent_to_fmr_ratio = est_rent / FMR or SAFMR from market-params safmr block (noah_candidates.csv supplies est_rent). No valuation beyond this gap."
+    },
+    {
+      "name": "tax_delinquency",
+      "weight": 15,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 15,
+      "floor": 0,
+      "bands": [
+        {"id": "tax_delinquent_1y", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "eq", "value": 1}, "points": 8, "reading": "One year of unpaid property tax: an owner under operating stress.", "intervention": "preservation_nofa_invitation (acquisition_grant)"},
+        {"id": "tax_delinquent_2plus", "event_type": "TAX_DELINQUENT_YEARS", "signal": null, "match": {"field": "value", "op": "gte", "value": 2}, "points": 15, "reading": "Two or more years delinquent: the property could reach the tax-foreclosure list, where the county itself becomes the owner.", "intervention": "preservation_nofa_invitation; county tax-title coordination"}
+      ],
+      "modifiers": []
+    },
+    {
+      "name": "long_hold",
+      "weight": 15,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 15,
+      "floor": 0,
+      "bands": [
+        {"id": "hold_15_plus", "event_type": "HOLD_YEARS", "signal": null, "match": {"field": "value", "op": "gte", "value": 15}, "points": 15, "reading": "Held fifteen or more years: low basis, aging systems, a generational transfer or sale ahead.", "intervention": "preservation_nofa_invitation (acquisition_grant)"},
+        {"id": "hold_10_15", "event_type": "HOLD_YEARS", "signal": null, "match": {"field": "value", "op": "between", "value": [10, 15]}, "points": 8, "reading": "Held ten to fifteen years.", "intervention": "watch; preservation_nofa_invitation when other factors fire"}
+      ],
+      "modifiers": []
+    },
+    {
+      "name": "maturity",
+      "weight": 15,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": true,
+      "cap": 15,
+      "floor": 0,
+      "bands": [
+        {"id": "loan_maturity_le_24", "event_type": "LOAN_MATURITY", "signal": null, "match": {"all": [{"field": "months_out", "op": "between", "value": [0, 24]}, {"field": "basis", "op": "in", "value": ["RECORDED", "REPORTED"]}]}, "points": 15, "reading": "A recorded or reported first-mortgage maturity inside 24 months: the owner must refinance or sell.", "intervention": "preservation_nofa_invitation (acquisition_grant); NOAH OHAF bridge"}
+      ],
+      "modifiers": [],
+      "notes": "RECORDED/REPORTED only; no inferred or proxy maturities in the agency tool."
+    },
+    {
+      "name": "physical",
+      "weight": 10,
+      "take": "max",
+      "event_driven": true,
+      "apply_basis_multiplier": false,
+      "cap": 10,
+      "floor": 0,
+      "bands": [
+        {"id": "code_case_open", "event_type": "CODE_CASE_OPEN", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 6, "reading": "Open code case on unregulated stock: rehab need the acquisition grant would have to fund.", "intervention": "preservation_nofa_invitation (acquisition-rehab); physical-condition-assessment handoff"},
+        {"id": "dangerous_building", "event_type": "DANGEROUS_BUILDING", "signal": null, "match": {"field": "months_out", "op": "exists"}, "points": 10, "reading": "Dangerous-building listing: life-safety exposure for unprotected tenants.", "intervention": "preservation_nofa_invitation (acquisition-rehab); emergency coordination"}
+      ],
+      "modifiers": []
+    }
+  ],
+  "hard_filters": [
+    {"id": "regulated_property", "condition": "programs_list not empty", "effect": "excluded from noah_unregulated (belongs in affordable_public_am)"},
+    {"id": "under_5_units", "condition": "units < 5", "effect": "excluded"}
+  ],
+  "routes": {
+    "precedence": ["nofa_offer"],
+    "sentinels": ["none", "excluded"],
+    "rules": [
+      {"id": "noah_acquisition_grant", "route": "nofa_offer", "primary": true, "condition": "intervention_score >= 30 AND mandate.json lists an open acquisition_grant product (mandate_fit eligible)", "intervention": "preservation_nofa_invitation", "owner_outreach": false}
+    ],
+    "handoff": {"off-market-deal-finder": {"asset_class": "market_rate_mf", "owner_outreach": false, "purpose": "public_acquisition_screen", "fields": ["geography", "property_ids"]}}
+  },
+  "quality_rules": [
+    "Off by default for every profile; enabled only by --noah-watch or config noah_watch: true (R7).",
+    "Only route nofa_offer; no acquisition, assumption or outreach routes; owner_outreach false on every handoff.",
+    "No valuation beyond the rent/FMR gap; no refinance-gap screen."
+  ]
+}

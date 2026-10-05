@@ -1,0 +1,196 @@
+token,lender_type,match_type,notes
+SECRETARY OF HOUSING AND URBAN DEVELOPMENT,hud_fha,contains,HUD-held note or HECM second trust deed; check class (HECM when residential 1-4 and a first lien by a HECM originator exists)
+HOUSING AND URBAN DEVELOPMENT,hud_fha,contains,
+HUD,hud_fha,word,
+FEDERAL HOUSING COMMISSIONER,hud_fha,contains,
+GINNIE MAE,hud_fha,contains,securitized FHA loan
+GOVERNMENT NATIONAL MORTGAGE,hud_fha,contains,
+FANNIE MAE,fannie_dus,contains,assignment of trust deed to Fannie Mae identifies DUS execution
+FEDERAL NATIONAL MORTGAGE ASSOCIATION,fannie_dus,contains,
+FREDDIE MAC,freddie_k_sb,contains,
+FEDERAL HOME LOAN MORTGAGE CORPORATION,freddie_k_sb,contains,
+WALKER & DUNLOP,fannie_dus,contains,DUS and Optigo lender; also HUD MAP; confirm execution from tape
+WALKER AND DUNLOP,fannie_dus,contains,
+BERKADIA,fannie_dus,contains,DUS / Optigo / HUD lender; confirm from tape
+GREYSTONE,fannie_dus,contains,DUS / Optigo / HUD / bridge; confirm from tape
+ARBOR,fannie_dus,contains,DUS and bridge lender; floating-rate bridge common 2021-22
+CBRE MULTIFAMILY CAPITAL,fannie_dus,contains,
+CBRE CAPITAL MARKETS,fannie_dus,contains,
+JLL REAL ESTATE CAPITAL,fannie_dus,contains,
+NEWMARK,fannie_dus,contains,
+LUMENT,fannie_dus,contains,DUS / Optigo / HUD
+HUNT MORTGAGE,fannie_dus,contains,legacy name of Lument
+CAPITAL ONE MULTIFAMILY,fannie_dus,contains,
+KEYBANK REAL ESTATE CAPITAL,fannie_dus,contains,agency and bank; confirm from tape else bank_cu
+WELLS FARGO MULTIFAMILY CAPITAL,fannie_dus,contains,
+M&T REALTY CAPITAL,fannie_dus,contains,
+PGIM REAL ESTATE FINANCE,fannie_dus,contains,agency and life co; confirm
+NORTHMARQ,fannie_dus,contains,agency correspondent; confirm from tape
+GRANDBRIDGE,fannie_dus,contains,
+BELLWETHER ENTERPRISE,fannie_dus,contains,
+REGIONS REAL ESTATE CAPITAL,fannie_dus,contains,
+DWIGHT CAPITAL,hud_fha,contains,HUD MAP lender; also bridge
+ROCKPORT MORTGAGE,hud_fha,contains,
+MERCHANTS CAPITAL,hud_fha,contains,HUD and agency
+GERSHMAN,hud_fha,contains,
+LOVE FUNDING,hud_fha,contains,
+ORIX REAL ESTATE CAPITAL,hud_fha,contains,
+MORTGAGE PASS-THROUGH TRUST,cmbs,contains,
+COMMERCIAL MORTGAGE TRUST,cmbs,contains,
+COMMERCIAL MORTGAGE PASS-THROUGH CERTIFICATES,cmbs,contains,
+AS TRUSTEE FOR THE REGISTERED HOLDERS,cmbs,contains,
+WILMINGTON TRUST,cmbs,contains,trustee; often CMBS or CRE CLO
+U.S. BANK NATIONAL ASSOCIATION AS TRUSTEE,cmbs,contains,
+WELLS FARGO BANK AS TRUSTEE,cmbs,contains,
+DEUTSCHE BANK TRUST COMPANY AMERICAS AS TRUSTEE,cmbs,contains,
+CITIBANK AS TRUSTEE,cmbs,contains,
+MIDLAND LOAN SERVICES,cmbs,contains,master servicer
+KEYBANK AS MASTER SERVICER,cmbs,contains,
+RIALTO,cmbs,contains,special servicer / debt fund
+LNR PARTNERS,cmbs,contains,special servicer
+CWCAPITAL,cmbs,contains,special servicer
+MORGAN STANLEY MORTGAGE CAPITAL,cmbs,contains,conduit originator
+GOLDMAN SACHS MORTGAGE COMPANY,cmbs,contains,
+JPMORGAN CHASE BANK (CONDUIT),cmbs,contains,use when assignment to a trust follows
+CITI REAL ESTATE FUNDING,cmbs,contains,
+BARCLAYS CAPITAL REAL ESTATE,cmbs,contains,
+STARWOOD MORTGAGE CAPITAL,cmbs,contains,
+LADDER CAPITAL,cmbs,contains,conduit and balance sheet
+LIFE INSURANCE COMPANY,life_co,contains,
+LIFE INSURANCE CO,life_co,contains,
+MUTUAL LIFE,life_co,contains,
+METLIFE,life_co,contains,
+METROPOLITAN LIFE,life_co,contains,
+PRUDENTIAL INSURANCE,life_co,contains,
+PRINCIPAL LIFE,life_co,contains,
+NORTHWESTERN MUTUAL,life_co,contains,
+NEW YORK LIFE,life_co,contains,
+STANCORP,life_co,contains,Standard Insurance Company (Portland)
+STANDARD INSURANCE COMPANY,life_co,contains,
+SYMETRA LIFE,life_co,contains,
+PACIFIC LIFE,life_co,contains,
+NATIONWIDE LIFE,life_co,contains,
+AMERICAN EQUITY,life_co,contains,
+ALLSTATE LIFE,life_co,contains,
+JOHN HANCOCK,life_co,contains,
+LINCOLN NATIONAL,life_co,contains,
+THRIVENT,life_co,contains,
+MONEY360,debt_fund_bridge,contains,
+READYCAP,debt_fund_bridge,contains,
+READY CAPITAL,debt_fund_bridge,contains,
+MF1,debt_fund_bridge,contains,MF1 REIT; CRE CLO issuer
+LOANCORE,debt_fund_bridge,contains,
+ACRES,debt_fund_bridge,contains,ACRES Commercial Realty
+ACORE CAPITAL,debt_fund_bridge,contains,
+BENEFIT STREET PARTNERS,debt_fund_bridge,contains,
+FS CREDIT REAL ESTATE,debt_fund_bridge,contains,
+TPG RE FINANCE,debt_fund_bridge,contains,
+BLACKSTONE MORTGAGE TRUST,debt_fund_bridge,contains,
+KKR REAL ESTATE FINANCE,debt_fund_bridge,contains,
+ARES COMMERCIAL REAL ESTATE,debt_fund_bridge,contains,
+BRIDGE INVESTMENT GROUP,debt_fund_bridge,contains,
+PRIME FINANCE,debt_fund_bridge,contains,
+VARDE,debt_fund_bridge,contains,
+MACK REAL ESTATE CREDIT,debt_fund_bridge,contains,
+GRANITE POINT,debt_fund_bridge,contains,
+CAPITAL FUNDING GROUP,debt_fund_bridge,contains,
+LIMEKILN,debt_fund_bridge,contains,
+EMERALD CREEK,debt_fund_bridge,contains,
+LIMA ONE,debt_fund_bridge,contains,
+BRIDGE LOAN,debt_fund_bridge,contains,
+CAPITAL PARTNERS LENDING,debt_fund_bridge,contains,
+CREDIT FUND,debt_fund_bridge,contains,
+DEBT FUND,debt_fund_bridge,contains,
+UNITED STATES DEPARTMENT OF AGRICULTURE,usda_rd,contains,
+USDA,usda_rd,word,
+RURAL HOUSING SERVICE,usda_rd,contains,
+RURAL DEVELOPMENT,usda_rd,contains,
+FARMERS HOME ADMINISTRATION,usda_rd,contains,legacy 515 lender name
+OREGON HOUSING AND COMMUNITY SERVICES,state_soft,contains,
+STATE OF OREGON HOUSING,state_soft,contains,
+OREGON HOUSING STABILITY COUNCIL,state_soft,contains,
+HOUSING AND COMMUNITY SERVICES DEPARTMENT,state_soft,contains,
+WASHINGTON STATE HOUSING FINANCE COMMISSION,state_soft,contains,
+STATE OF WASHINGTON DEPARTMENT OF COMMERCE,state_soft,contains,Housing Trust Fund
+PORTLAND HOUSING BUREAU,local_soft,contains,
+CITY OF PORTLAND,local_soft,contains,PHB / PDC-era loans
+PORTLAND DEVELOPMENT COMMISSION,local_soft,contains,legacy name of Prosper Portland
+PROSPER PORTLAND,local_soft,contains,
+HOME FORWARD,local_soft,contains,housing authority loans
+HOUSING AUTHORITY OF PORTLAND,local_soft,contains,
+MULTNOMAH COUNTY,local_soft,contains,
+WASHINGTON COUNTY,local_soft,contains,Oregon county soft loans; distinguish from assessor records
+CLACKAMAS COUNTY,local_soft,contains,
+CITY OF GRESHAM,local_soft,contains,
+CITY OF BEAVERTON,local_soft,contains,
+CITY OF HILLSBORO,local_soft,contains,
+CITY OF VANCOUVER,local_soft,contains,
+VANCOUVER HOUSING AUTHORITY,local_soft,contains,
+CLARK COUNTY,local_soft,contains,
+METRO,local_soft,word,Metro affordable housing bond
+NETWORK FOR OREGON AFFORDABLE HOUSING,state_soft,contains,NOAH; CDFI permanent lender to regulated assets
+NOAH,state_soft,word,
+CRAFT3,state_soft,contains,CDFI
+ENTERPRISE COMMUNITY LOAN FUND,state_soft,contains,CDFI
+LISC,state_soft,word,CDFI
+COMMUNITY HOUSING CAPITAL,state_soft,contains,
+IMPACT CAPITAL,state_soft,contains,
+HOME EQUITY CONVERSION,hecm,contains,
+REVERSE MORTGAGE,hecm,contains,
+AMERICAN ADVISORS GROUP,hecm,contains,
+FINANCE OF AMERICA REVERSE,hecm,contains,
+LONGBRIDGE FINANCIAL,hecm,contains,
+MUTUAL OF OMAHA MORTGAGE (REVERSE),hecm,contains,
+LIBERTY HOME EQUITY,hecm,contains,
+REVERSE MORTGAGE FUNDING,hecm,contains,
+BANK,bank_cu,word,generic; any grantee containing BANK not matched above
+NATIONAL ASSOCIATION,bank_cu,contains,generic national bank suffix (N.A.)
+N.A.,bank_cu,contains,
+SAVINGS,bank_cu,word,
+CREDIT UNION,bank_cu,contains,
+FCU,bank_cu,word,
+UMPQUA BANK,bank_cu,contains,Portland-area community bank
+COLUMBIA BANKING,bank_cu,contains,
+COLUMBIA STATE BANK,bank_cu,contains,
+HERITAGE BANK,bank_cu,contains,
+BANNER BANK,bank_cu,contains,
+WASHINGTON FEDERAL,bank_cu,contains,WaFd
+WAFD,bank_cu,contains,
+PACIFIC PREMIER,bank_cu,contains,
+PACIFIC WESTERN BANK,bank_cu,contains,
+HOMESTREET,bank_cu,contains,
+RIVERVIEW COMMUNITY BANK,bank_cu,contains,
+OREGON PACIFIC BANK,bank_cu,contains,
+SUMMIT BANK,bank_cu,contains,
+LEWIS & CLARK BANK,bank_cu,contains,
+WILLAMETTE VALLEY BANK,bank_cu,contains,
+PEOPLES BANK,bank_cu,contains,
+FIRST INTERSTATE,bank_cu,contains,
+U.S. BANK,bank_cu,contains,when not acting as trustee
+US BANK,bank_cu,contains,
+WELLS FARGO BANK,bank_cu,contains,when not trustee or multifamily capital
+JPMORGAN CHASE,bank_cu,contains,bank balance sheet (Chase multifamily) unless conduit assignment follows
+CHASE,bank_cu,word,
+BANK OF AMERICA,bank_cu,contains,
+KEYBANK,bank_cu,contains,when not agency execution
+ZIONS,bank_cu,contains,
+WASHINGTON TRUST,bank_cu,contains,
+ONPOINT COMMUNITY CREDIT UNION,bank_cu,contains,
+ADVANTIS CREDIT UNION,bank_cu,contains,
+RIVERMARK COMMUNITY CREDIT UNION,bank_cu,contains,
+UNITUS COMMUNITY CREDIT UNION,bank_cu,contains,
+OREGON COMMUNITY CREDIT UNION,bank_cu,contains,
+IQ CREDIT UNION,bank_cu,contains,Clark County
+COLUMBIA CREDIT UNION,bank_cu,contains,Clark County
+BECU,bank_cu,word,
+TRUSTEE OF THE,seller_private,contains,individual or family trust as beneficiary; read instrument
+FAMILY TRUST,seller_private,contains,
+LIVING TRUST,seller_private,contains,
+REVOCABLE TRUST,seller_private,contains,
+AN INDIVIDUAL,seller_private,contains,
+HUSBAND AND WIFE,seller_private,contains,
+SELLER FINANCING,seller_private,contains,
+PRIVATE MONEY,seller_private,contains,
+HARD MONEY,seller_private,contains,
+INVESTMENTS LLC,seller_private,contains,private lender entity; read instrument
+CAPITAL LLC,seller_private,contains,ambiguous: private lender or debt fund; read instrument
